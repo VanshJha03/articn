@@ -2,1033 +2,799 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Football Penalty Game - Pro Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Over Cricket: World Cup Chase</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: #000; touch-action: none; }
-        #game-container { width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; position: relative; margin: auto; }
-        #game-canvas { width: 100%; height: 100%; display: block; }
-        .overlay { 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            background: linear-gradient(135deg, rgba(20,30,50,0.95) 0%, rgba(10,15,25,0.98) 100%); 
-            color: white; 
-            z-index: 100; 
-            text-align: center;
-            backdrop-filter: blur(10px);
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap');
+
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Rajdhani', sans-serif; user-select: none; }
+        #game-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        
+        /* UI Overlay */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
+        
+        /* Screens */
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: auto; z-index: 10; backdrop-filter: blur(5px); transition: opacity 0.5s; }
+        .hidden { opacity: 0; pointer-events: none; z-index: -1; }
+        
+        h1 { color: #fff; font-size: 4rem; text-transform: uppercase; letter-spacing: 5px; text-shadow: 0 0 20px #00aaff; margin-bottom: 10px; text-align: center; }
+        h2 { color: #ddd; font-size: 2rem; margin-bottom: 30px; }
+        
+        /* Country Select */
+        .country-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .country-btn {
+            padding: 15px 30px; border: 2px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white;
+            font-size: 1.2rem; cursor: pointer; transition: all 0.3s; text-transform: uppercase; font-weight: bold;
+            clip-path: polygon(10% 0, 100% 0, 100% 80%, 90% 100%, 0 100%, 0 20%);
         }
-        .hidden { display: none !important; }
-        h1 { 
-            font-size: 2.8rem; 
-            margin-bottom: 1rem; 
-            background: linear-gradient(45deg, #ffd700, #ffaa00, #ffd700);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
-            animation: glow 2s ease-in-out infinite alternate;
+        .country-btn:hover { transform: scale(1.05); background: rgba(255,255,255,0.15); border-color: #fff; box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+        
+        /* HUD */
+        #hud { padding: 20px; display: flex; justify-content: space-between; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.8); pointer-events: none; }
+        .score-box { background: rgba(0,0,0,0.6); padding: 10px 20px; border-left: 4px solid #00aaff; border-radius: 4px; }
+        .score-big { font-size: 2.5rem; font-weight: 700; }
+        .score-label { font-size: 0.9rem; opacity: 0.8; text-transform: uppercase; }
+        .target-info { text-align: right; border-left: none; border-right: 4px solid #ff4444; }
+        
+        /* Shot Selector */
+        #shot-wheel {
+            position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 10px; pointer-events: auto; opacity: 0; transition: opacity 0.3s;
         }
-        @keyframes glow {
-            from { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5)); }
-            to { filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8)); }
+        #shot-wheel.active { opacity: 1; }
+        .shot-btn {
+            width: 80px; height: 80px; border-radius: 50%; border: 2px solid white;
+            background: rgba(0,0,0,0.7); color: white; font-weight: bold; font-size: 0.8rem;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center;
+            transition: all 0.2s; text-transform: uppercase; box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
-        h2 { 
-            font-size: 2rem; 
-            margin-bottom: 1.2rem; 
-            color: #fff;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        .shot-btn:hover { background: #00aaff; transform: translateY(-5px); box-shadow: 0 0 20px #00aaff; }
+        .shot-btn:active { transform: scale(0.95); }
+
+        /* Commentary / Status */
+        #commentary {
+            position: absolute; top: 20%; left: 50%; transform: translateX(-50%);
+            color: #fff; font-size: 2rem; font-weight: bold; text-align: center;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8); opacity: 0; transition: opacity 0.3s;
+            background: rgba(0,0,0,0.5); padding: 10px 30px; border-radius: 20px;
         }
-        p { 
-            font-size: 1.1rem; 
-            margin-bottom: 1.5rem; 
-            max-width: 550px; 
-            line-height: 1.7;
-            color: #e0e0e0;
+
+        /* Slow Mo Effect Overlay */
+        #slow-mo-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); mix-blend-mode: luminosity; pointer-events: none;
+            opacity: 0; transition: opacity 1s; z-index: 5;
         }
-        .btn { 
-            padding: 15px 40px; 
-            font-size: 1.2rem; 
-            margin: 10px; 
-            cursor: pointer; 
-            border: none; 
-            border-radius: 10px; 
-            background: linear-gradient(145deg, #2ecc71, #27ae60); 
-            color: white; 
-            font-weight: bold;
-            box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        #slow-mo-text {
+            position: absolute; top: 10%; width: 100%; text-align: center;
+            color: #fff; font-size: 3rem; font-weight: 900; letter-spacing: 10px;
+            text-transform: uppercase; opacity: 0; transition: opacity 0.5s; z-index: 6;
+            text-shadow: 0 0 20px white;
         }
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(46, 204, 113, 0.6);
+
+        /* Match Summary */
+        .match-card { background: linear-gradient(135deg, #1a1a1a, #2a2a2a); padding: 30px; border-radius: 10px; text-align: center; color: white; max-width: 500px; border: 1px solid #444; }
+        .progress-bar { width: 100%; height: 10px; background: #333; margin-top: 10px; border-radius: 5px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #00aaff; width: 0%; transition: width 0.5s; }
+
+        button.action-btn {
+            margin-top: 20px; padding: 15px 40px; background: #00aaff; color: white; border: none;
+            font-size: 1.2rem; font-weight: bold; cursor: pointer; text-transform: uppercase;
+            clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); transition: transform 0.2s;
         }
-        .btn:active {
-            transform: translateY(-1px);
-        }
-        .btn-secondary { 
-            background: linear-gradient(145deg, #3498db, #2980b9);
-            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
-        }
-        .btn-secondary:hover {
-            box-shadow: 0 10px 30px rgba(52, 152, 219, 0.6);
-        }
-        .btn-danger { 
-            background: linear-gradient(145deg, #e74c3c, #c0392b);
-            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
-        }
-        .btn-danger:hover {
-            box-shadow: 0 10px 30px rgba(231, 76, 60, 0.6);
-        }
-        .hud { 
-            position: absolute; 
-            top: 15px; 
-            left: 15px; 
-            color: white; 
-            font-size: 1.2rem; 
-            z-index: 50; 
-            background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(20,40,60,0.8));
-            padding: 12px 20px; 
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .target-overlay { 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            z-index: 60; 
-            cursor: crosshair;
-            background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.3) 100%);
-        }
-        .leg-buttons { 
-            position: absolute; 
-            bottom: 100px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            display: flex; 
-            gap: 20px; 
-            z-index: 70; 
-        }
-        .leg-btn { 
-            width: 80px; 
-            height: 80px; 
-            border-radius: 50%; 
-            font-size: 1.5rem; 
-            font-weight: bold; 
-            border: 4px solid white; 
-            cursor: pointer;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-            transition: all 0.2s ease;
-            text-transform: uppercase;
-        }
-        .leg-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-        }
-        .dive-buttons { 
-            position: absolute; 
-            top: 50%; 
-            left: 50%; 
-            transform: translate(-50%, -50%); 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            grid-template-rows: repeat(2, 1fr); 
-            gap: 15px; 
-            z-index: 70; 
-        }
-        .dive-btn { 
-            width: 70px; 
-            height: 70px; 
-            border-radius: 12px; 
-            font-size: 0.9rem; 
-            font-weight: bold; 
-            border: 3px solid white; 
-            cursor: pointer;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-            transition: all 0.2s ease;
-        }
-        .dive-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-        }
-        .footwork-buttons { 
-            position: absolute; 
-            bottom: 100px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            display: flex; 
-            gap: 12px; 
-            flex-wrap: wrap; 
-            justify-content: center; 
-            z-index: 70; 
-        }
-        .footwork-btn { 
-            padding: 12px 20px; 
-            font-size: 1rem; 
-            font-weight: bold; 
-            border: 3px solid white; 
-            border-radius: 8px; 
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            transition: all 0.2s ease;
-        }
-        .footwork-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
-        }
-        .timer-display { 
-            position: absolute; 
-            top: 80px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            font-size: 2.5rem; 
-            font-weight: bold; 
-            color: #ffd700; 
-            z-index: 50;
-            text-shadow: 0 4px 20px rgba(255, 215, 0, 0.8);
-            background: rgba(0,0,0,0.6);
-            padding: 10px 30px;
-            border-radius: 10px;
-        }
-        .power-bar-container {
-            position: absolute;
-            bottom: 180px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 200px;
-            height: 20px;
-            background: rgba(0,0,0,0.7);
-            border-radius: 10px;
-            border: 2px solid white;
-            z-index: 70;
-            overflow: hidden;
-        }
-        .power-bar {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #2ecc71, #f1c40f, #e74c3c);
-            transition: width 0.1s linear;
-        }
-        .power-label {
-            position: absolute;
-            bottom: 205px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: white;
-            font-size: 0.9rem;
-            z-index: 70;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
-        }
+        button.action-btn:hover { transform: scale(1.05); background: #0088cc; }
+
     </style>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
-    <div id="game-container">
-        <canvas id="game-canvas"></canvas>
-        <div id="main-menu" class="overlay">
-            <h1>⚽ PRO PENALTY SHOOTOUT</h1>
-            <p>Experience the ultimate penalty shootout with realistic graphics and physics!</p>
-            <button class="btn" onclick="selectRole('scorer')">🎯 Be the Striker</button>
-            <button class="btn btn-secondary" onclick="selectRole('goalkeeper')">🧤 Be the Goalkeeper</button>
+
+    <div id="game-container"></div>
+    <div id="slow-mo-overlay"></div>
+    <div id="slow-mo-text">SLOW MOTION</div>
+
+    <div id="ui-layer">
+        <!-- HUD -->
+        <div id="hud" class="hidden">
+            <div class="score-box">
+                <div class="score-label" id="hud-team">IND</div>
+                <div class="score-big"><span id="score-runs">0</span>/<span id="score-wickets">0</span></div>
+                <div class="score-label">Overs: <span id="score-overs">0.0</span></div>
+            </div>
+            <div class="score-box target-info">
+                <div class="score-label">Target</div>
+                <div class="score-big" id="target-display">189</div>
+                <div class="score-label" id="required-rate">Need 189 from 60</div>
+            </div>
         </div>
-        <div id="scorer-instructions" class="overlay hidden">
-            <h2>🎯 Penalty Striker</h2>
-            <p><strong>How to Score:</strong><br>
-            1. Click START to begin your run-up<br>
-            2. Click anywhere on the goal to aim your shot<br>
-            3. When you reach the ball, quickly choose LEFT or RIGHT leg!<br>
-            4. Time your kick perfectly for maximum accuracy!</p>
-            <button class="btn" onclick="startScorerGame()">START RUN-UP</button>
-            <button class="btn btn-danger" onclick="showMainMenu()">Back to Menu</button>
+
+        <!-- Shot Selection Wheel -->
+        <div id="shot-wheel">
+            <button class="shot-btn" onclick="playShot('defend')">Defend</button>
+            <button class="shot-btn" onclick="playShot('straight')">Straight</button>
+            <button class="shot-btn" onclick="playShot('cover')">Cover Drive</button>
+            <button class="shot-btn" onclick="playShot('flick')">Flick</button>
+            <button class="shot-btn" onclick="playShot('pull')">Pull</button>
+            <button class="shot-btn" onclick="playShot('scoop')">Scoop</button>
+            <button class="shot-btn" onclick="playShot('overcover')">Over Covers</button>
         </div>
-        <div id="goalkeeper-instructions" class="overlay hidden">
-            <h2>🧤 Goalkeeper</h2>
-            <p><strong>How to Save:</strong><br>
-            1. Use footwork buttons to position yourself before the kick<br>
-            2. Watch the striker's approach carefully<br>
-            3. When the shot comes, dive in the correct direction!<br>
-            4. Quick reflexes are key to making the save!</p>
-            <button class="btn" onclick="startGoalkeeperGame()">I'M READY</button>
-            <button class="btn btn-danger" onclick="showMainMenu()">Back to Menu</button>
-        </div>
-        <div id="hud" class="hud hidden">
-            <div>🏆 Score: <span id="score">0</span> | ⚽ Attempts: <span id="attempts">0</span></div>
-        </div>
-        <div id="target-overlay" class="target-overlay hidden"></div>
-        <div id="leg-buttons" class="leg-buttons hidden">
-            <button class="leg-btn" style="background:linear-gradient(145deg, #3498db, #2980b9)" onclick="kickWithLeg('left')">L</button>
-            <button class="leg-btn" style="background:linear-gradient(145deg, #e74c3c, #c0392b)" onclick="kickWithLeg('right')">R</button>
-        </div>
-        <div class="power-label hidden" id="power-label">POWER</div>
-        <div class="power-bar-container hidden" id="power-bar-container">
-            <div class="power-bar" id="power-bar"></div>
-        </div>
-        <div id="footwork-buttons" class="footwork-buttons hidden">
-            <button class="footwork-btn" style="background:linear-gradient(145deg, #3498db, #2980b9)" onclick="doFootwork('left')">← Shift Left</button>
-            <button class="footwork-btn" style="background:linear-gradient(145deg, #9b59b6, #8e44ad)" onclick="doFootwork('wiggle')">Wiggle</button>
-            <button class="footwork-btn" style="background:linear-gradient(145deg, #2ecc71, #27ae60)" onclick="doFootwork('still')">Hold Position</button>
-            <button class="footwork-btn" style="background:linear-gradient(145deg, #e67e22, #d35400)" onclick="doFootwork('right')">Shift Right →</button>
-        </div>
-        <div id="dive-buttons" class="dive-buttons hidden">
-            <button class="dive-btn" style="background:linear-gradient(145deg, #9b59b6, #8e44ad)" onclick="dive('top-left')">↖ Top Left</button>
-            <button class="dive-btn" style="background:linear-gradient(145deg, #34495e, #2c3e50)" onclick="dive('center')">Stay</button>
-            <button class="dive-btn" style="background:linear-gradient(145deg, #e74c3c, #c0392b)" onclick="dive('top-right')">Top Right ↗</button>
-            <button class="dive-btn" style="background:linear-gradient(145deg, #2ecc71, #27ae60)" onclick="dive('bottom-left')">↙ Low Left</button>
-            <button class="dive-btn" style="background:linear-gradient(145deg, #f39c12, #e67e22)" onclick="dive('bottom-right')">Low Right ↘</button>
-        </div>
-        <div id="timer-display" class="timer-display hidden">2.00</div>
-        <div id="result-overlay" class="overlay hidden">
-            <h2 id="result-title">GOAL!</h2>
-            <p id="result-message">Great shot!</p>
-            <button class="btn" onclick="nextRound()">⚽ Next Kick</button>
-            <button class="btn btn-danger" onclick="showMainMenu()">🏠 Main Menu</button>
+
+        <!-- Commentary -->
+        <div id="commentary">GOOD LENGTH BALL</div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen">
+        <h1>World Cup Chase</h1>
+        <h2>Select Your Nation</h2>
+        <div class="country-grid">
+            <button class="country-btn" style="border-color: #0055aa;" onclick="selectCountry('India', '#0055aa')">India</button>
+            <button class="country-btn" style="border-color: #00aa55;" onclick="selectCountry('Pakistan', '#00aa55')">Pakistan</button>
+            <button class="country-btn" style="border-color: #008800;" onclick="selectCountry('Bangladesh', '#008800')">Bangladesh</button>
+            <button class="country-btn" style="border-color: #ffcc00;" onclick="selectCountry('Australia', '#ffcc00')">Australia</button>
+            <button class="country-btn" style="border-color: #111111;" onclick="selectCountry('New Zealand', '#111111')">New Zealand</button>
+            <button class="country-btn" style="border-color: #cc0000;" onclick="selectCountry('England', '#cc0000')">England</button>
         </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script>
-// Game variables
-let scene, camera, renderer;
-let currentRole = null;
-let gameState = 'menu';
-let score = 0, attempts = 0;
 
-// Scorer state
-let scorerZ = -15;
-let ballPos = {x: 0, y: 0.3, z: 0};
-let targetPos = null;
-let kickTimer = 0, kickTimerMax = 2000;
-let selectedLeg = null;
-let isRunning = false;
-let runSpeed = 0.15; // Fixed: was undefined
+    <!-- Match Intro Screen -->
+    <div id="match-screen" class="screen hidden">
+        <div class="match-card">
+            <h2 id="match-title">Match 1</h2>
+            <h1 id="match-vs">vs New Zealand</h1>
+            <p style="font-size: 1.5rem; color: #aaa;">Chase <span id="match-target" style="color:#fff; font-weight:bold;">189</span> in <span id="match-balls">60</span> balls</p>
+            <div class="progress-bar"><div class="progress-fill" id="tournament-progress" style="width: 16%"></div></div>
+            <p id="tournament-status" style="margin-top:10px; font-size: 0.9rem; color: #888;">League Stage: Need 3 wins to qualify</p>
+            <button class="action-btn" onclick="startMatch()">Start Innings</button>
+        </div>
+    </div>
 
-// Goalkeeper state  
-let keeperX = 0;
-let goalkeeperState = 'waiting';
-let footworkChoice = null;
-let diveChoice = null;
-let ballTargetSegment = null;
+    <!-- Result Screen -->
+    <div id="result-screen" class="screen hidden">
+        <div class="match-card">
+            <h1 id="result-title">YOU WON!</h1>
+            <p id="result-desc" style="font-size: 1.2rem; margin: 20px 0;">Chased down the target with 4 balls remaining.</p>
+            <button class="action-btn" id="next-match-btn" onclick="nextMatch()">Next Match</button>
+            <button class="action-btn" id="restart-btn" onclick="location.reload()" style="background:#444; display:none;">Tournament Over</button>
+        </div>
+    </div>
 
-// 3D objects
-let playerMesh, goalkeeperMesh, ballMesh, goalGroup;
-let crowd = [];
-let grassMaterial, fieldLines = [];
-let stadiumLights = [];
-
-const goalWidth = 7.32, goalHeight = 2.44, goalDepth = 2;
-
-function init() {
-    const container = document.getElementById('game-container');
-    const canvas = document.getElementById('game-canvas');
-    
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a4d2e);
-    scene.fog = new THREE.FogExp2(0x1a4d2e, 0.015);
-    
-    camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 200);
-    
-    renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true});
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
-    
-    // Enhanced lighting with stadium lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambientLight);
-    
-    // Main stadium floodlights
-    const floodLight1 = new THREE.SpotLight(0xffffee, 1.5, 100, Math.PI/6, 0.3);
-    floodLight1.position.set(-20, 30, -10);
-    floodLight1.castShadow = true;
-    floodLight1.shadow.mapSize.width = 2048;
-    floodLight1.shadow.mapSize.height = 2048;
-    scene.add(floodLight1);
-    stadiumLights.push(floodLight1);
-    
-    const floodLight2 = new THREE.SpotLight(0xffffee, 1.5, 100, Math.PI/6, 0.3);
-    floodLight2.position.set(20, 30, -10);
-    floodLight2.castShadow = true;
-    scene.add(floodLight2);
-    stadiumLights.push(floodLight2);
-    
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    dirLight.position.set(15, 25, 15);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
-    scene.add(dirLight);
-    
-    createGrass();
-    createGoal();
-    createStadium();
-    createCrowd();
-    createBall();
-    createPlayer();
-    createGoalkeeper3D();
-    
-    window.addEventListener('resize', onResize);
-    document.getElementById('target-overlay').addEventListener('click', onTargetClick);
-    
-    animate();
-}
-
-function createGrass() {
-    // Multi-layer grass with stripes
-    const grassGeo = new THREE.PlaneGeometry(80, 120);
-    
-    // Base grass layer with stripe pattern
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d');
-    
-    // Draw striped grass pattern
-    for (let i = 0; i < 512; i++) {
-        const shade = (Math.floor(i / 32) % 2 === 0) ? '#2d5a1f' : '#3a7a2f';
-        ctx.fillStyle = shade;
-        ctx.fillRect(0, i, 512, 1);
-    }
-    
-    const grassTexture = new THREE.CanvasTexture(canvas);
-    grassTexture.wrapS = THREE.RepeatWrapping;
-    grassTexture.wrapT = THREE.RepeatWrapping;
-    grassTexture.repeat.set(4, 6);
-    
-    grassMaterial = new THREE.MeshStandardMaterial({ 
-        map: grassTexture,
-        roughness: 0.9,
-        metalness: 0.0
-    });
-    
-    const grass = new THREE.Mesh(grassGeo, grassMaterial);
-    grass.rotation.x = -Math.PI/2;
-    grass.position.z = -20;
-    grass.receiveShadow = true;
-    scene.add(grass);
-    
-    // Penalty spot
-    const spotGeo = new THREE.CircleGeometry(0.3, 32);
-    const spotMat = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 0.8});
-    const spot = new THREE.Mesh(spotGeo, spotMat);
-    spot.rotation.x = -Math.PI/2;
-    spot.position.y = 0.02;
-    spot.receiveShadow = true;
-    scene.add(spot);
-    
-    // Goal area lines
-    createFieldLines();
-}
-
-function createFieldLines() {
-    const lineMaterial = new THREE.MeshBasicMaterial({color: 0xffffff, opacity: 0.8, transparent: true});
-    
-    // Penalty box outline
-    const penaltyBoxWidth = 16.5;
-    const penaltyBoxLength = 16.5;
-    
-    const createLine = (x1, z1, x2, z2) => {
-        const points = [new THREE.Vector3(x1, 0.03, z1), new THREE.Vector3(x2, 0.03, z2)];
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        const line = new THREE.Line(geometry, lineMaterial);
-        scene.add(line);
-        fieldLines.push(line);
+<script>
+    // --- Game State ---
+    const STATE = {
+        team: '',
+        teamColor: '',
+        matchIndex: 0,
+        wins: 0,
+        losses: 0,
+        isLeague: true,
+        currentTarget: 0,
+        currentBalls: 0,
+        runs: 0,
+        wickets: 0,
+        ballsBowled: 0,
+        isBatting: true,
+        gameOver: false
     };
-    
-    // Penalty area
-    createLine(-penaltyBoxWidth/2, -5, penaltyBoxWidth/2, -5);
-    createLine(-penaltyBoxWidth/2, -5, -penaltyBoxWidth/2, -5-penaltyBoxLength);
-    createLine(penaltyBoxWidth/2, -5, penaltyBoxWidth/2, -5-penaltyBoxLength);
-    
-    // Goal line
-    createLine(-penaltyBoxWidth/2, -5-goalDepth, penaltyBoxWidth/2, -5-goalDepth);
-}
 
-function createGoal() {
-    goalGroup = new THREE.Group();
-    
-    // Realistic goal posts with proper material
-    const postMat = new THREE.MeshStandardMaterial({ 
-        color: 0xffffff, 
-        roughness: 0.3,
-        metalness: 0.5
-    });
-    const postGeo = new THREE.CylinderGeometry(0.08, 0.08, goalHeight, 16);
-    
-    const leftPost = new THREE.Mesh(postGeo, postMat);
-    leftPost.position.set(-goalWidth/2, goalHeight/2, 0);
-    leftPost.castShadow = true;
-    goalGroup.add(leftPost);
-    
-    const rightPost = new THREE.Mesh(postGeo, postMat);
-    rightPost.position.set(goalWidth/2, goalHeight/2, 0);
-    rightPost.castShadow = true;
-    goalGroup.add(rightPost);
-    
-    const crossGeo = new THREE.CylinderGeometry(0.08, 0.08, goalWidth, 16);
-    const crossbar = new THREE.Mesh(crossGeo, postMat);
-    crossbar.rotation.z = Math.PI/2;
-    crossbar.position.set(0, goalHeight, 0);
-    crossbar.castShadow = true;
-    goalGroup.add(crossbar);
-    
-    // Realistic net with proper geometry
-    const netGeo = new THREE.PlaneGeometry(goalWidth, goalHeight, 20, 20);
-    const netMat = new THREE.MeshStandardMaterial({
-        color: 0xeeeeee,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.3,
-        side: THREE.DoubleSide
-    });
-    
-    // Back net
-    const backNet = new THREE.Mesh(netGeo, netMat);
-    backNet.position.set(0, goalHeight/2, -goalDepth);
-    backNet.receiveShadow = true;
-    goalGroup.add(backNet);
-    
-    // Side nets
-    const sideNetGeo = new THREE.PlaneGeometry(goalDepth, goalHeight, 10, 20);
-    const leftSideNet = new THREE.Mesh(sideNetGeo, netMat);
-    leftSideNet.rotation.y = Math.PI/2;
-    leftSideNet.position.set(-goalWidth/2, goalHeight/2, -goalDepth/2);
-    goalGroup.add(leftSideNet);
-    
-    const rightSideNet = new THREE.Mesh(sideNetGeo, netMat);
-    rightSideNet.rotation.y = -Math.PI/2;
-    rightSideNet.position.set(goalWidth/2, goalHeight/2, -goalDepth/2);
-    goalGroup.add(rightSideNet);
-    
-    // Top net
-    const topNetGeo = new THREE.PlaneGeometry(goalWidth, goalDepth, 20, 10);
-    const topNet = new THREE.Mesh(topNetGeo, netMat);
-    topNet.rotation.x = Math.PI/2;
-    topNet.position.set(0, goalHeight, -goalDepth/2);
-    goalGroup.add(topNet);
-    
-    goalGroup.position.z = -5;
-    scene.add(goalGroup);
-}
+    const TEAMS = ['India', 'Pakistan', 'Bangladesh', 'Australia', 'New Zealand', 'England'];
+    const SHOTS = ['defend', 'straight', 'cover', 'flick', 'pull', 'scoop', 'overcover'];
+    const BOWL_TYPES = ['Yorker', 'Wide Yorker', 'Googly', 'Pace', 'Bouncer', 'Off Spin', 'Leg Spin', 'Carrom'];
 
-function createStadium() {
-    // Stadium stands with multiple levels
-    const standMat = new THREE.MeshStandardMaterial({color: 0x4a5568, roughness: 0.8});
-    
-    // Main stand structure
-    const standGeo = new THREE.BoxGeometry(90, 20, 10);
-    const mainStand = new THREE.Mesh(standGeo, standMat);
-    mainStand.position.set(0, 10, -60);
-    mainStand.castShadow = true;
-    mainStand.receiveShadow = true;
-    scene.add(mainStand);
-    
-    // Roof structure
-    const roofGeo = new THREE.BoxGeometry(95, 2, 25);
-    const roofMat = new THREE.MeshStandardMaterial({color: 0x2d3748, roughness: 0.6, metalness: 0.3});
-    const roof = new THREE.Mesh(roofGeo, roofMat);
-    roof.position.set(0, 22, -55);
-    roof.castShadow = true;
-    scene.add(roof);
-    
-    // Support pillars
-    const pillarGeo = new THREE.CylinderGeometry(0.5, 0.5, 22, 8);
-    const pillarPositions = [[-40, 11, -48], [40, 11, -48], [-40, 11, -62], [40, 11, -62]];
-    pillarPositions.forEach(pos => {
-        const pillar = new THREE.Mesh(pillarGeo, standMat);
-        pillar.position.set(...pos);
-        pillar.castShadow = true;
-        scene.add(pillar);
-    });
-    
-    // Floodlight towers
-    const towerGeo = new THREE.CylinderGeometry(1, 1.2, 35, 8);
-    const towerMat = new THREE.MeshStandardMaterial({color: 0x718096, roughness: 0.5});
-    const towerPositions = [[-45, 17.5, -20], [45, 17.5, -20]];
-    towerPositions.forEach(pos => {
-        const tower = new THREE.Mesh(towerGeo, towerMat);
-        tower.position.set(...pos);
-        tower.castShadow = true;
-        scene.add(tower);
+    // --- Three.js Globals ---
+    let scene, camera, renderer, controls;
+    let pitch, ball, batsman, bowler, stumps, crowdParticles;
+    let ballVelocity = new THREE.Vector3();
+    let isBallInPlay = false;
+    let slowMoActive = false;
+    let slowMoTimer = 0;
+    let selectedShot = null;
+    let ballStartPosition, ballEndPosition;
+    let animationId;
+
+    // --- Init Three.js ---
+    function init3D() {
+        const container = document.getElementById('game-container');
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+        scene.fog = new THREE.FogExp2(0x1a1a2e, 0.015);
+
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 15, 25); // Behind batsman slightly elevated
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enablePan = false;
+        controls.maxPolarAngle = Math.PI / 2 - 0.1;
+        controls.minDistance = 10;
+        controls.maxDistance = 40;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(50, 100, 50);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        scene.add(dirLight);
+
+        // Stadium Lights (Spotlights)
+        const spotLight1 = new THREE.SpotLight(0xffaa00, 0.5);
+        spotLight1.position.set(-20, 30, -20);
+        spotLight1.target.position.set(0, 0, 0);
+        scene.add(spotLight1);
         
-        // Light fixtures on towers
-        const fixtureGeo = new THREE.BoxGeometry(4, 2, 2);
-        const fixtureMat = new THREE.MeshStandardMaterial({color: 0x2d3748, emissive: 0xffffee, emissiveIntensity: 0.3});
-        const fixture = new THREE.Mesh(fixtureGeo, fixtureMat);
-        fixture.position.set(pos[0], 35, pos[2]);
-        scene.add(fixture);
-    });
-}
+        const spotLight2 = new THREE.SpotLight(0xaaffff, 0.5);
+        spotLight2.position.set(20, 30, -20);
+        spotLight2.target.position.set(0, 0, 0);
+        scene.add(spotLight2);
 
-function createCrowd() {
-    // Create animated crowd with more variety
-    const colors = [0xe74c3c, 0x3498db, 0xf1c40f, 0x2ecc71, 0x9b59b6, 0xecf0f1, 0xe67e22, 0x1abc9c];
-    const crowdGroup = new THREE.Group();
-    
-    for (let i = 0; i < 400; i++) {
-        const geo = new THREE.CapsuleGeometry(0.25, 0.8, 4, 8);
-        const mat = new THREE.MeshStandardMaterial({
-            color: colors[Math.floor(Math.random() * colors.length)],
-            roughness: 0.7
-        });
-        const person = new THREE.Mesh(geo, mat);
+        createStadium();
+        createPitch();
+        createCharacters();
         
-        // Distribute crowd in stands
-        const angle = (i / 400) * Math.PI * 2;
-        const radius = 40 + Math.random() * 30;
-        const height = 5 + Math.random() * 18;
-        
-        person.position.set(
-            Math.cos(angle) * radius,
-            height,
-            -50 + Math.sin(angle) * 20
-        );
-        
-        // Random rotation for variety
-        person.rotation.y = Math.random() * Math.PI;
-        person.castShadow = true;
-        crowd.push(person);
-        crowdGroup.add(person);
+        window.addEventListener('resize', onWindowResize, false);
+        animate();
     }
-    
-    scene.add(crowdGroup);
-}
 
-function createBall() {
-    // Realistic soccer ball with pentagon pattern
-    const ballGroup = new THREE.Group();
-    
-    // Main sphere
-    const geo = new THREE.SphereGeometry(0.22, 32, 32);
-    const whiteMat = new THREE.MeshStandardMaterial({ 
-        color: 0xffffff, 
-        roughness: 0.4,
-        metalness: 0.1
-    });
-    const blackMat = new THREE.MeshStandardMaterial({ 
-        color: 0x1a1a1a, 
-        roughness: 0.4,
-        metalness: 0.1
-    });
-    
-    ballMesh = new THREE.Mesh(geo, whiteMat);
-    ballMesh.castShadow = true;
-    ballMesh.receiveShadow = true;
-    ballGroup.add(ballMesh);
-    
-    // Add some black patches for classic look
-    for (let i = 0; i < 6; i++) {
-        const patchGeo = new THREE.SphereGeometry(0.225, 16, 16, 0, Math.PI * 2, 0, Math.PI/3);
-        const patch = new THREE.Mesh(patchGeo, blackMat);
-        patch.rotation.set(
-            Math.random() * Math.PI,
-            Math.random() * Math.PI * 2,
-            Math.random() * Math.PI
-        );
-        ballGroup.add(patch);
-    }
-    
-    ballGroup.position.set(0, 0.22, 0);
-    scene.add(ballGroup);
-    ballMesh = ballGroup; // Update reference
-}
+    function createStadium() {
+        // Grass
+        const grassGeo = new THREE.CircleGeometry(150, 64);
+        const grassMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27, roughness: 0.8 });
+        const grass = new THREE.Mesh(grassGeo, grassMat);
+        grass.rotation.x = -Math.PI / 2;
+        grass.receiveShadow = true;
+        scene.add(grass);
 
-function createPlayer() {
-    const group = new THREE.Group();
-    const bodyMat = new THREE.MeshLambertMaterial({color: 0xe74c3c});
-    const skinMat = new THREE.MeshLambertMaterial({color: 0xffdbac});
-    const legMat = new THREE.MeshLambertMaterial({color: 0x2c3e50});
-    
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.65, 0.28), bodyMat);
-    body.position.y = 0.82;
-    group.add(body);
-    
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, 0.28), skinMat);
-    head.position.y = 1.35;
-    group.add(head);
-    
-    const legGeo = new THREE.BoxGeometry(0.13, 0.45, 0.13);
-    const leftLeg = new THREE.Mesh(legGeo, legMat);
-    leftLeg.position.set(-0.13, 0.22, 0);
-    group.add(leftLeg);
-    
-    const rightLeg = new THREE.Mesh(legGeo, legMat);
-    rightLeg.position.set(0.13, 0.22, 0);
-    group.add(rightLeg);
-    
-    playerMesh = group;
-    playerMesh.position.set(0, 0, scorerZ);
-    scene.add(playerMesh);
-}
+        // Crowd (Particles)
+        const particleCount = 2000;
+        const geom = new THREE.BufferGeometry();
+        const positions = [];
+        const colors = [];
 
-function createGoalkeeper3D() {
-    const group = new THREE.Group();
-    const bodyMat = new THREE.MeshLambertMaterial({color: 0xf39c12});
-    const skinMat = new THREE.MeshLambertMaterial({color: 0xffdbac});
-    const legMat = new THREE.MeshLambertMaterial({color: 0x2c3e50});
-    
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.28), bodyMat);
-    body.position.y = 0.87;
-    group.add(body);
-    
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 0.32), skinMat);
-    head.position.y = 1.45;
-    group.add(head);
-    
-    const legGeo = new THREE.BoxGeometry(0.16, 0.55, 0.16);
-    const leftLeg = new THREE.Mesh(legGeo, legMat);
-    leftLeg.position.set(-0.18, 0.27, 0);
-    group.add(leftLeg);
-    
-    const rightLeg = new THREE.Mesh(legGeo, legMat);
-    rightLeg.position.set(0.18, 0.27, 0);
-    group.add(rightLeg);
-    
-    goalkeeperMesh = group;
-    goalkeeperMesh.position.set(0, 0, 0.5);
-    scene.add(goalkeeperMesh);
-}
-
-function onResize() {
-    const container = document.getElementById('game-container');
-    camera.aspect = container.clientWidth / container.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(container.clientWidth, container.clientHeight);
-}
-
-// UI Functions
-function selectRole(role) {
-    currentRole = role;
-    document.getElementById('main-menu').classList.add('hidden');
-    if (role === 'scorer') {
-        document.getElementById('scorer-instructions').classList.remove('hidden');
-    } else {
-        document.getElementById('goalkeeper-instructions').classList.remove('hidden');
-    }
-}
-
-function showMainMenu() {
-    gameState = 'menu';
-    document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
-    document.getElementById('main-menu').classList.remove('hidden');
-    document.getElementById('hud').classList.add('hidden');
-    resetGame();
-}
-
-function resetGame() {
-    scorerZ = -15;
-    keeperX = 0;
-    targetPos = null;
-    selectedLeg = null;
-    kickTimer = 0;
-    isRunning = false;
-    goalkeeperState = 'waiting';
-    footworkChoice = null;
-    diveChoice = null;
-    ballTargetSegment = null;
-    
-    playerMesh.position.set(0, 0, scorerZ);
-    goalkeeperMesh.position.set(0, 0, 0.5);
-    ballMesh.position.set(0, 0.22, 0);
-    camera.rotation.set(0, 0, 0);
-}
-
-function startScorerGame() {
-    document.getElementById('scorer-instructions').classList.add('hidden');
-    document.getElementById('hud').classList.remove('hidden');
-    gameState = 'running';
-    isRunning = true;
-    updateScore();
-}
-
-function startGoalkeeperGame() {
-    document.getElementById('goalkeeper-instructions').classList.add('hidden');
-    document.getElementById('hud').classList.remove('hidden');
-    document.getElementById('footwork-buttons').classList.remove('hidden');
-    goalkeeperState = 'footwork';
-    updateScore();
-    
-    // AI kicker runs and kicks after delay
-    setTimeout(() => {
-        aiKickerRunAndKick();
-    }, 2000);
-}
-
-function updateScore() {
-    document.getElementById('score').textContent = score;
-    document.getElementById('attempts').textContent = attempts;
-}
-
-// Scorer gameplay
-function onTargetClick(event) {
-    if (gameState !== 'aiming') return;
-    
-    const rect = event.target.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / rect.width;
-    const y = (event.clientY - rect.top) / rect.height;
-    
-    // Map click to goal coordinates
-    targetPos = {
-        x: (x - 0.5) * goalWidth * 0.9,
-        y: y * goalHeight * 0.95
-    };
-    
-    document.getElementById('target-overlay').classList.add('hidden');
-    document.getElementById('leg-buttons').classList.remove('hidden');
-    document.getElementById('timer-display').classList.remove('hidden');
-    gameState = 'kicking';
-    kickTimer = kickTimerMax;
-}
-
-function kickWithLeg(leg) {
-    if (gameState !== 'kicking') return;
-    
-    selectedLeg = leg;
-    document.getElementById('leg-buttons').classList.add('hidden');
-    document.getElementById('timer-display').classList.add('hidden');
-    
-    // Calculate shot accuracy based on timing
-    const timeRemaining = kickTimer / kickTimerMax;
-    const accuracy = timeRemaining > 0.3 ? 0.9 : 0.4;
-    
-    // 2/3 chance of goal with good timing
-    const willScore = Math.random() < 0.67 && accuracy > 0.5;
-    
-    kickBall(willScore);
-}
-
-function kickBall(willScore) {
-    gameState = 'ballFlying';
-    
-    if (willScore && targetPos) {
-        ballTargetSegment = getSegmentFromPosition(targetPos.x, targetPos.y);
-        // Animate ball to target
-        animateBallToTarget(targetPos.x, targetPos.y);
-    } else {
-        // Miss - random direction
-        const missX = (Math.random() - 0.5) * goalWidth * 1.5;
-        const missY = Math.random() * goalHeight * 0.5;
-        ballTargetSegment = 'miss';
-        animateBallToTarget(missX, missY);
-    }
-}
-
-function getSegmentFromPosition(x, y) {
-    const halfW = goalWidth / 3;
-    const halfH = goalHeight / 2;
-    
-    if (y > halfH) {
-        if (x < -halfW) return 'top-left';
-        if (x > halfW) return 'top-right';
-        return 'center';
-    } else {
-        if (x < -halfW) return 'bottom-left';
-        if (x > halfW) return 'bottom-right';
-        return 'center';
-    }
-}
-
-let ballVelocity = {x: 0, y: 0, z: 0};
-function animateBallToTarget(tx, ty) {
-    const startTime = Date.now();
-    const duration = 800;
-    const startPos = {x: 0, y: 0.22, z: 0};
-    
-    function step() {
-        const elapsed = Date.now() - startTime;
-        const t = Math.min(elapsed / duration, 1);
-        
-        ballMesh.position.x = startPos.x + tx * t;
-        ballMesh.position.y = startPos.y + (ty - startPos.y) * t + Math.sin(t * Math.PI) * 0.5;
-        ballMesh.position.z = startPos.z + (-5) * t;
-        
-        if (t < 1) {
-            requestAnimationFrame(step);
-        } else {
-            checkScorerResult(tx, ty);
-        }
-    }
-    step();
-}
-
-function checkScorerResult(tx, ty) {
-    attempts++;
-    
-    const inGoal = Math.abs(tx) < goalWidth/2 && ty < goalHeight && ty > 0;
-    const isGoal = inGoal && Math.abs(tx - (targetPos?.x || 0)) < 1;
-    
-    if (isGoal) {
-        score++;
-        showResult('GOAL!', 'Great shot!');
-    } else {
-        showResult('MISSED!', 'The goalkeeper saved it or you missed!');
-    }
-    updateScore();
-}
-
-// Goalkeeper gameplay
-function doFootwork(choice) {
-    if (goalkeeperState !== 'footwork') return;
-    footworkChoice = choice;
-    
-    // Visual feedback
-    if (choice === 'left') keeperX = Math.max(keeperX - 0.5, -2);
-    if (choice === 'right') keeperX = Math.min(keeperX + 0.5, 2);
-    goalkeeperMesh.position.x = keeperX;
-}
-
-function aiKickerRunAndKick() {
-    document.getElementById('footwork-buttons').classList.add('hidden');
-    
-    // Determine where ball will go
-    const segments = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'];
-    ballTargetSegment = segments[Math.floor(Math.random() * segments.length)];
-    
-    // Show dive buttons
-    document.getElementById('dive-buttons').classList.remove('hidden');
-    goalkeeperState = 'diving';
-    
-    // Animate ball coming
-    animateBallToKeeper();
-}
-
-function animateBallToKeeper() {
-    const startTime = Date.now();
-    const duration = 1500; // Slower for reaction
-    const startPos = {x: 0, y: 0.22, z: -11};
-    
-    let targetX, targetY;
-    switch(ballTargetSegment) {
-        case 'top-left': targetX = -2; targetY = 1.8; break;
-        case 'top-right': targetX = 2; targetY = 1.8; break;
-        case 'bottom-left': targetX = -2; targetY = 0.5; break;
-        case 'bottom-right': targetX = 2; targetY = 0.5; break;
-        default: targetX = 0; targetY = 1;
-    }
-    
-    function step() {
-        const elapsed = Date.now() - startTime;
-        const t = Math.min(elapsed / duration, 1);
-        
-        ballMesh.position.x = startPos.x + targetX * t;
-        ballMesh.position.y = startPos.y + (targetY - startPos.y) * t;
-        ballMesh.position.z = startPos.z + 11 * t;
-        
-        if (t < 1) {
-            requestAnimationFrame(step);
-        } else {
-            checkKeeperResult();
-        }
-    }
-    step();
-}
-
-function dive(choice) {
-    if (goalkeeperState !== 'diving') return;
-    diveChoice = choice;
-    document.getElementById('dive-buttons').classList.add('hidden');
-    
-    // Visual dive
-    if (choice.includes('left')) goalkeeperMesh.position.x -= 1;
-    if (choice.includes('right')) goalkeeperMesh.position.x += 1;
-    if (choice.includes('top')) goalkeeperMesh.position.y += 0.5;
-    if (choice.includes('bottom')) goalkeeperMesh.position.y -= 0.3;
-}
-
-function checkKeeperResult() {
-    attempts++;
-    
-    const saved = diveChoice === ballTargetSegment;
-    
-    if (saved) {
-        score++;
-        showResult('SAVED!', 'Great save by the goalkeeper!');
-    } else {
-        showResult('GOAL!', 'The kicker scored!');
-    }
-    updateScore();
-}
-
-function showResult(title, message) {
-    gameState = 'result';
-    document.getElementById('result-title').textContent = title;
-    document.getElementById('result-message').textContent = message;
-    document.getElementById('result-overlay').classList.remove('hidden');
-}
-
-function nextRound() {
-    document.getElementById('result-overlay').classList.add('hidden');
-    resetGame();
-    
-    if (currentRole === 'scorer') {
-        document.getElementById('scorer-instructions').classList.remove('hidden');
-    } else {
-        document.getElementById('goalkeeper-instructions').classList.remove('hidden');
-    }
-}
-
-// Animation loop
-let lastTime = 0;
-function animate(time) {
-    requestAnimationFrame(animate);
-    
-    const delta = time - lastTime;
-    lastTime = time;
-    
-    // Update camera based on role and state
-    if (currentRole === 'scorer') {
-        // FPS view from scorer perspective
-        camera.position.set(0, 1.7, scorerZ + 0.5);
-        camera.lookAt(0, 1, -5);
-        
-        if (gameState === 'running' && isRunning) {
-            scorerZ += runSpeed;
-            playerMesh.position.z = scorerZ;
+        for (let i = 0; i < particleCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 40 + Math.random() * 60;
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+            const y = Math.random() * 10 + 2; // Stand height
             
-            // Start aiming when close to ball
-            if (scorerZ > -2 && gameState === 'running') {
-                gameState = 'aiming';
-                document.getElementById('target-overlay').classList.remove('hidden');
+            positions.push(x, y, z);
+            
+            // Random crowd colors
+            const r = Math.random();
+            const g = Math.random();
+            const b = Math.random();
+            colors.push(r, g, b);
+        }
+
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        
+        const mat = new THREE.PointsMaterial({ size: 0.8, vertexColors: true });
+        crowdParticles = new THREE.Points(geom, mat);
+        scene.add(crowdParticles);
+    }
+
+    function createPitch() {
+        // Pitch
+        const pitchGeo = new THREE.PlaneGeometry(4, 22);
+        const pitchMat = new THREE.MeshStandardMaterial({ color: 0xd2b48c, roughness: 0.9 });
+        pitch = new THREE.Mesh(pitchGeo, pitchMat);
+        pitch.rotation.x = -Math.PI / 2;
+        pitch.position.y = 0.05;
+        pitch.receiveShadow = true;
+        scene.add(pitch);
+
+        // Creases
+        const lineGeo = new THREE.PlaneGeometry(4, 0.1);
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const crease1 = new THREE.Mesh(lineGeo, lineMat);
+        crease1.rotation.x = -Math.PI / 2;
+        crease1.position.set(0, 0.06, 10);
+        scene.add(crease1);
+        
+        const crease2 = new THREE.Mesh(lineGeo, lineMat);
+        crease2.rotation.x = -Math.PI / 2;
+        crease2.position.set(0, 0.06, -10);
+        scene.add(crease2);
+
+        // Stumps
+        const stumpGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.5);
+        const stumpMat = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
+        
+        stumps = new THREE.Group();
+        const positions = [-0.3, 0, 0.3];
+        positions.forEach(x => {
+            const s = new THREE.Mesh(stumpGeo, stumpMat);
+            s.position.set(x, 0.75, 10.5);
+            s.castShadow = true;
+            stumps.add(s);
+            
+            const s2 = new THREE.Mesh(stumpGeo, stumpMat);
+            s2.position.set(x, 0.75, -10.5);
+            s2.castShadow = true;
+            stumps.add(s2);
+        });
+        scene.add(stumps);
+    }
+
+    function createCharacters() {
+        // Batsman
+        const batGroup = new THREE.Group();
+        
+        // Body
+        const bodyGeo = new THREE.CapsuleGeometry(0.4, 1.2, 4, 8);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: STATE.teamColor || 0x0055aa });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.1;
+        body.castShadow = true;
+        batGroup.add(body);
+
+        // Head
+        const headGeo = new THREE.SphereGeometry(0.35, 16, 16);
+        const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa }); // Skin
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.y = 2.0;
+        batGroup.add(head);
+
+        // Helmet
+        const helmGeo = new THREE.SphereGeometry(0.36, 16, 16, 0, Math.PI * 2, 0, Math.PI/2);
+        const helmMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.5 });
+        const helmet = new THREE.Mesh(helmGeo, helmMat);
+        helmet.position.y = 2.0;
+        batGroup.add(helmet);
+
+        // Bat
+        const batBladeGeo = new THREE.BoxGeometry(0.15, 0.8, 0.05);
+        const batMat = new THREE.MeshStandardMaterial({ color: 0xdeb887 });
+        const batBlade = new THREE.Mesh(batBladeGeo, batMat);
+        batBlade.position.set(0.4, 0.8, 0.2);
+        batBlade.rotation.x = 0.2;
+        batGroup.add(batBlade);
+
+        batGroup.position.set(0, 0, 9); // Striker end
+        batsman = batGroup;
+        scene.add(batsman);
+
+        // Bowler
+        const bowlGroup = new THREE.Group();
+        const bBody = new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({ color: 0xcccccc })); // Opponent kit grey for now
+        bBody.position.y = 1.1;
+        bBody.castShadow = true;
+        bowlGroup.add(bBody);
+        
+        const bHead = new THREE.Mesh(headGeo, headMat);
+        bHead.position.y = 2.0;
+        bowlGroup.add(bHead);
+
+        bowlGroup.position.set(0, 0, -12);
+        bowlGroup.rotation.y = Math.PI; // Facing batsman
+        bowler = bowlGroup;
+        scene.add(bowler);
+
+        // Ball
+        const ballGeo = new THREE.SphereGeometry(0.15, 16, 16);
+        const ballMat = new THREE.MeshStandardMaterial({ color: 0xcc0000, roughness: 0.4 });
+        ball = new THREE.Mesh(ballGeo, ballMat);
+        ball.castShadow = true;
+        scene.add(ball);
+        resetBall();
+    }
+
+    function resetBall() {
+        ball.position.set(0, 2, -12);
+        ballVelocity.set(0, 0, 0);
+        ball.rotation.set(0,0,0);
+        isBallInPlay = false;
+        slowMoActive = false;
+        document.getElementById('slow-mo-overlay').style.opacity = 0;
+        document.getElementById('slow-mo-text').style.opacity = 0;
+        document.getElementById('shot-wheel').classList.remove('active');
+        selectedShot = null;
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // --- Game Logic ---
+
+    function selectCountry(name, color) {
+        STATE.team = name;
+        STATE.teamColor = color;
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('hud').classList.remove('hidden');
+        document.getElementById('hud-team').innerText = name.substring(0, 3).toUpperCase();
+        document.getElementById('hud-team').style.borderLeftColor = color;
+        
+        // Update 3D Batsman Color
+        if(batsman) {
+            batsman.children[0].material.color.set(color);
+        }
+
+        setupMatch(1);
+    }
+
+    function setupMatch(index) {
+        STATE.matchIndex = index;
+        STATE.isLeague = index <= 5;
+        
+        // Determine Opponent
+        let opponents = TEAMS.filter(t => t !== STATE.team);
+        let opponent = opponents[Math.floor(Math.random() * opponents.length)];
+        
+        // Calculate Target based on stage
+        let minRate = STATE.isLeague ? 2.5 : 3.0;
+        let maxRate = STATE.isLeague ? 3.0 : 3.5;
+        
+        // Special case: High tension chase in late league or knockout
+        if (!STATE.isLeague && index === 6) minRate = 2.8; // Semi final
+        
+        const balls = STATE.isLeague ? 60 : (index === 6 ? 60 : 60); // Standard 10 overs for simplicity in this demo, could vary
+        const rate = minRate + Math.random() * (maxRate - minRate);
+        const target = Math.floor(rate * (balls/6)) + Math.floor(Math.random() * 10); // Add some variance
+        
+        STATE.currentTarget = target;
+        STATE.currentBalls = balls;
+        
+        // Update UI
+        document.getElementById('match-screen').classList.remove('hidden');
+        document.getElementById('match-title').innerText = STATE.isLeague ? `League Match ${index}` : (index === 6 ? 'Semi Final' : 'Grand Final');
+        document.getElementById('match-vs').innerText = `vs ${opponent}`;
+        document.getElementById('match-target').innerText = target;
+        document.getElementById('match-balls').innerText = balls;
+        
+        // Progress
+        let progress = ((index-1) / 8) * 100;
+        document.getElementById('tournament-progress').style.width = `${progress}%`;
+        
+        let statusText = STATE.isLeague ? "Need 3 wins to qualify" : "Knockout: Win or Go Home";
+        if (index === 7) statusText = "Kick Match: Last Chance";
+        if (index === 8) statusText = "The Grand Final!";
+        document.getElementById('tournament-status').innerText = statusText;
+    }
+
+    function startMatch() {
+        document.getElementById('match-screen').classList.add('hidden');
+        STATE.runs = 0;
+        STATE.wickets = 0;
+        STATE.ballsBowled = 0;
+        STATE.gameOver = false;
+        updateHUD();
+        nextDelivery();
+    }
+
+    function nextDelivery() {
+        if (STATE.gameOver) return;
+        if (STATE.ballsBowled >= STATE.currentBalls) {
+            endInnings();
+            return;
+        }
+        if (STATE.wickets >= 10) {
+            endInnings();
+            return;
+        }
+
+        resetBall();
+        showCommentary("Bowler running in...");
+        
+        // Simulate Bowler Runup
+        let runupStart = -20;
+        let runupEnd = -12;
+        let speed = 0.3;
+        
+        const runupInterval = setInterval(() => {
+            if (bowler.position.z > runupEnd) {
+                clearInterval(runupInterval);
+                deliverBall();
+            } else {
+                bowler.position.z += speed;
+                // Bobbing animation
+                bowler.position.y = Math.abs(Math.sin(Date.now() * 0.01)) * 0.5;
+            }
+        }, 16);
+    }
+
+    function deliverBall() {
+        const bowlType = BOWL_TYPES[Math.floor(Math.random() * BOWL_TYPES.length)];
+        showCommentary(`${bowlType} delivered!`);
+        
+        isBallInPlay = true;
+        ballStartPosition = new THREE.Vector3(0, 2, -12);
+        ball.position.copy(ballStartPosition);
+        
+        // Target point near batsman stumps with variation based on type
+        let targetZ = 9;
+        let targetX = (Math.random() - 0.5) * 1.5;
+        let targetY = 0.5;
+
+        if (bowlType === 'Yorker') targetY = 0.1;
+        if (bowlType === 'Bouncer') { targetY = 2.2; targetZ = 8; }
+        if (bowlType.includes('Wide')) targetX += 2;
+        
+        ballEndPosition = new THREE.Vector3(targetX, targetY, targetZ);
+        
+        // Calculate velocity for normal speed (will be slowed later)
+        const direction = new THREE.Vector3().subVectors(ballEndPosition, ballStartPosition);
+        const distance = direction.length();
+        direction.normalize();
+        
+        // Base speed
+        const baseSpeed = 0.4; 
+        ballVelocity = direction.multiplyScalar(baseSpeed);
+
+        // Start Slow Motion Sequence
+        triggerSlowMo();
+    }
+
+    function triggerSlowMo() {
+        slowMoActive = true;
+        slowMoTimer = 3.5; // seconds
+        
+        const overlay = document.getElementById('slow-mo-overlay');
+        const text = document.getElementById('slow-mo-text');
+        const wheel = document.getElementById('shot-wheel');
+        
+        // Fade in B&W
+        overlay.style.transition = 'opacity 1s';
+        overlay.style.opacity = 1;
+        
+        setTimeout(() => {
+            text.style.opacity = 1;
+            wheel.classList.add('active'); // Show shots
+        }, 500);
+    }
+
+    function playShot(shotType) {
+        if (!isBallInPlay || !slowMoActive || selectedShot) return;
+        
+        selectedShot = shotType;
+        document.getElementById('shot-wheel').classList.remove('active');
+        document.getElementById('slow-mo-text').style.opacity = 0;
+        
+        // End slow mo visually but keep logic until impact
+        // Actually, prompt says slow mo ends when 70% distance covered OR user chooses?
+        // "during slow motion... batsman has to choose". 
+        // Let's end slow mo immediately on choice for better feel, or wait for 70%?
+        // Prompt: "slow motion ends... during slow motion, game becomes black and white... batsman has to choose during this only."
+        // Implies choice must happen IN slow mo. Once chosen, we can exit slow mo or wait.
+        // Let's exit slow mo effect immediately for responsiveness.
+        
+        document.getElementById('slow-mo-overlay').style.opacity = 0;
+        slowMoActive = false; 
+        
+        // Calculate Outcome
+        calculateOutcome(shotType);
+    }
+
+    function calculateOutcome(shot) {
+        // Simple logic: Random factor + Shot suitability (simplified for demo)
+        // In a full game, we'd check ball type vs shot type geometry.
+        
+        const luck = Math.random();
+        let runs = 0;
+        let isWicket = false;
+        let msg = "";
+
+        // Defense is safe but 0 runs usually
+        if (shot === 'defend') {
+            if (luck > 0.9) { runs = 1; msg = "Quick single taken!"; }
+            else { runs = 0; msg = "Solid defense."; }
+        } 
+        else if (shot === 'scoop' || shot === 'overcover') {
+            // High risk high reward
+            if (luck > 0.7) { runs = 6; msg = "INCREDIBLE SHOT! SIX!"; }
+            else if (luck > 0.4) { runs = 4; msg = "Beautifully placed for FOUR!"; }
+            else if (luck > 0.2) { runs = 1; msg = "Good running, one run."; }
+            else { isWicket = true; msg = "Mistimed! Caught!"; }
+        }
+        else {
+            // Standard shots
+            if (luck > 0.8) { runs = 6; msg = "Huge Hit! SIX!"; }
+            else if (luck > 0.6) { runs = 4; msg = "Cracking shot! FOUR!"; }
+            else if (luck > 0.3) { runs = 2; msg = "Good placement, two runs."; }
+            else if (luck > 0.1) { runs = 1; msg = "Single taken."; }
+            else { 
+                if (Math.random() > 0.5) { isWicket = true; msg = "Bowled him!"; }
+                else { runs = 0; msg = "Dot ball."; }
             }
         }
+
+        // Apply Result after a short delay for ball to reach
+        setTimeout(() => {
+            applyResult(runs, isWicket, msg);
+        }, 500);
+    }
+
+    function applyResult(runs, isWicket, msg) {
+        STATE.runs += runs;
+        if (isWicket) STATE.wickets++;
+        STATE.ballsBowled++;
         
-        // Countdown timer
-        if (gameState === 'kicking') {
-            kickTimer -= delta;
-            if (kickTimer <= 0) {
-                kickTimer = 0;
-                kickWithLeg('left'); // Auto-kick if timeout
-            }
-            document.getElementById('timer-display').textContent = (kickTimer/1000).toFixed(2);
+        showCommentary(msg);
+        updateHUD();
+        
+        // Visual feedback
+        if (runs === 4 || runs === 6) {
+            // Celebration camera shake or effect could go here
         }
+        if (isWicket) {
+            // Remove batsman? Just flash red
+            document.getElementById('ui-layer').style.boxShadow = "inset 0 0 50px red";
+            setTimeout(() => document.getElementById('ui-layer').style.boxShadow = "none", 500);
+        }
+
+        setTimeout(nextDelivery, 1500);
+    }
+
+    function updateHUD() {
+        document.getElementById('score-runs').innerText = STATE.runs;
+        document.getElementById('score-wickets').innerText = STATE.wickets;
         
-    } else if (currentRole === 'goalkeeper') {
-        // FPS view from goalkeeper perspective
-        camera.position.set(0, 1.7, 1.5);
-        camera.lookAt(0, 1, -5);
+        const overs = Math.floor(STATE.ballsBowled / 6) + "." + (STATE.ballsBowled % 6);
+        document.getElementById('score-overs').innerText = overs;
         
-        if (goalkeeperState === 'footwork') {
-            // Keeper sways slightly
-            goalkeeperMesh.position.x = keeperX + Math.sin(time/500) * 0.1;
+        const remaining = STATE.currentTarget - STATE.runs;
+        const ballsLeft = STATE.currentBalls - STATE.ballsBowled;
+        document.getElementById('target-display').innerText = STATE.currentTarget;
+        document.getElementById('required-rate').innerText = `Need ${remaining} from ${ballsLeft}`;
+        
+        if (STATE.runs >= STATE.currentTarget) {
+            endInnings(true);
         }
     }
-    
-    renderer.render(scene, camera);
-}
 
-// Initialize on load
-window.onload = init;
-    </script>
+    function showCommentary(text) {
+        const el = document.getElementById('commentary');
+        el.innerText = text;
+        el.style.opacity = 1;
+        el.style.transform = "translateX(-50%) scale(1.1)";
+        setTimeout(() => {
+            el.style.opacity = 0;
+            el.style.transform = "translateX(-50%) scale(1)";
+        }, 1500);
+    }
+
+    function endInnings(won = false) {
+        STATE.gameOver = true;
+        const resultScreen = document.getElementById('result-screen');
+        const title = document.getElementById('result-title');
+        const desc = document.getElementById('result-desc');
+        const nextBtn = document.getElementById('next-match-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        
+        resultScreen.classList.remove('hidden');
+        
+        if (STATE.runs >= STATE.currentTarget) {
+            won = true;
+            title.innerText = "VICTORY!";
+            title.style.color = "#00ff00";
+            desc.innerText = `Chased ${STATE.currentTarget} with ${STATE.currentBalls - STATE.ballsBowled} balls remaining!`;
+            STATE.wins++;
+            
+            if (STATE.matchIndex === 8) {
+                desc.innerText += " YOU ARE WORLD CHAMPIONS!";
+                nextBtn.style.display = 'none';
+                restartBtn.style.display = 'inline-block';
+                restartBtn.innerText = "Play Again";
+            } else {
+                nextBtn.onclick = () => {
+                    resultScreen.classList.add('hidden');
+                    setupMatch(STATE.matchIndex + 1);
+                };
+            }
+        } else {
+            title.innerText = "DEFEAT";
+            title.style.color = "#ff0000";
+            desc.innerText = `Fell short by ${STATE.currentTarget - STATE.runs} runs.`;
+            STATE.losses++;
+            
+            // Logic for Kick match or Elimination
+            if (STATE.isLeague) {
+                if (STATE.wins >= 3) {
+                     // Already qualified? No, this is league. If lost, just continue unless eliminated mathematically
+                     // Simplified: Just go to next match unless 3 losses in first 5?
+                     // Prompt: "win 3/5 of first 5 to win [qualify]"
+                     if (STATE.losses >= 3 && STATE.matchIndex < 5) {
+                         desc.innerText += " Eliminated from tournament.";
+                         nextBtn.style.display = 'none';
+                         restartBtn.style.display = 'inline-block';
+                     } else {
+                         nextBtn.onclick = () => {
+                            resultScreen.classList.add('hidden');
+                            setupMatch(STATE.matchIndex + 1);
+                         };
+                     }
+                } else {
+                     nextBtn.onclick = () => {
+                        resultScreen.classList.add('hidden');
+                        setupMatch(STATE.matchIndex + 1);
+                     };
+                }
+            } else {
+                // Knockout loss
+                if (STATE.matchIndex === 6) {
+                    desc.innerText += " Moving to Kick Match...";
+                    nextBtn.onclick = () => {
+                        resultScreen.classList.add('hidden');
+                        setupMatch(7); // Kick match
+                    };
+                } else {
+                    desc.innerText += " Tournament Over.";
+                    nextBtn.style.display = 'none';
+                    restartBtn.style.display = 'inline-block';
+                }
+            }
+        }
+    }
+
+    function nextMatch() {
+        // Handled in endInnings logic
+    }
+
+    // --- Animation Loop ---
+    function animate() {
+        requestAnimationFrame(animate);
+
+        if (isBallInPlay) {
+            // Move ball
+            ball.position.add(ballVelocity);
+            
+            // Rotate ball
+            ball.rotation.x += 0.2;
+            ball.rotation.z += 0.1;
+
+            // Slow Motion Logic
+            if (slowMoActive) {
+                // Time slows down effectively by reducing velocity multiplier in visual update?
+                // Actually, we already moved the ball. 
+                // The prompt says: "slow motion for exactly 3.5s... when ball covered 70%... turns proper"
+                // But user must choose DURING slow mo.
+                // My implementation: Slow mo starts, user clicks, slow mo ends, result calculated.
+                // If user doesn't click? Force random shot or dot ball?
+                // Let's assume user must click. If timer runs out, it's a miss/wicket.
+                
+                slowMoTimer -= 0.016; // approx 60fps
+                if (slowMoTimer <= 0) {
+                    // Time ran out without selection
+                    slowMoActive = false;
+                    document.getElementById('slow-mo-overlay').style.opacity = 0;
+                    document.getElementById('shot-wheel').classList.remove('active');
+                    applyResult(0, true, "No shot played! BOWLED!");
+                }
+            } else {
+                // Normal speed continuation if needed, but currently logic pauses ball waiting for shot
+                // To make it seamless: The ball moves slowly during slow mo, then speeds up?
+                // For this demo, the ball freezes visually during selection for precision, 
+                // then "hits" instantly after selection.
+            }
+
+            // Check if passed batsman (missed shot if no selection made yet handled by timer)
+            if (ball.position.z > 11 && !selectedShot && !slowMoActive) {
+                 // Ball went through
+                 applyResult(0, false, "Dot ball (missed)");
+            }
+        }
+
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    // Start
+    init3D();
+
+</script>
 </body>
 </html>

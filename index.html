@@ -3,77 +3,296 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Football Penalty Game</title>
+    <title>3D Football Penalty Game - Pro Edition</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; font-family: Arial, sans-serif; background: #000; touch-action: none; }
+        body { overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: #000; touch-action: none; }
         #game-container { width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; position: relative; margin: auto; }
         #game-canvas { width: 100%; height: 100%; display: block; }
-        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0,0,0,0.85); color: white; z-index: 100; text-align: center; }
+        .overlay { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            background: linear-gradient(135deg, rgba(20,30,50,0.95) 0%, rgba(10,15,25,0.98) 100%); 
+            color: white; 
+            z-index: 100; 
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
         .hidden { display: none !important; }
-        h1 { font-size: 2rem; margin-bottom: 1rem; color: #ffd700; }
-        h2 { font-size: 1.5rem; margin-bottom: 1rem; color: #fff; }
-        p { font-size: 1rem; margin-bottom: 1rem; max-width: 500px; line-height: 1.5; }
-        .btn { padding: 12px 30px; font-size: 1.1rem; margin: 8px; cursor: pointer; border: none; border-radius: 6px; background: linear-gradient(145deg, #2ecc71, #27ae60); color: white; font-weight: bold; }
-        .btn-secondary { background: linear-gradient(145deg, #3498db, #2980b9); }
-        .btn-danger { background: linear-gradient(145deg, #e74c3c, #c0392b); }
-        .hud { position: absolute; top: 10px; left: 10px; color: white; font-size: 1rem; z-index: 50; background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 6px; }
-        .target-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 60; cursor: crosshair; }
-        .leg-buttons { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; z-index: 70; }
-        .leg-btn { width: 60px; height: 60px; border-radius: 50%; font-size: 1rem; font-weight: bold; border: 3px solid white; cursor: pointer; }
-        .dive-buttons { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 10px; z-index: 70; }
-        .dive-btn { width: 50px; height: 50px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; border: 2px solid white; cursor: pointer; }
-        .footwork-buttons { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; z-index: 70; }
-        .footwork-btn { padding: 10px 15px; font-size: 0.9rem; font-weight: bold; border: 2px solid white; border-radius: 6px; cursor: pointer; }
-        .timer-display { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); font-size: 1.5rem; font-weight: bold; color: #ffd700; z-index: 50; }
+        h1 { 
+            font-size: 2.8rem; 
+            margin-bottom: 1rem; 
+            background: linear-gradient(45deg, #ffd700, #ffaa00, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5)); }
+            to { filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8)); }
+        }
+        h2 { 
+            font-size: 2rem; 
+            margin-bottom: 1.2rem; 
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        p { 
+            font-size: 1.1rem; 
+            margin-bottom: 1.5rem; 
+            max-width: 550px; 
+            line-height: 1.7;
+            color: #e0e0e0;
+        }
+        .btn { 
+            padding: 15px 40px; 
+            font-size: 1.2rem; 
+            margin: 10px; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 10px; 
+            background: linear-gradient(145deg, #2ecc71, #27ae60); 
+            color: white; 
+            font-weight: bold;
+            box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(46, 204, 113, 0.6);
+        }
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        .btn-secondary { 
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+        .btn-secondary:hover {
+            box-shadow: 0 10px 30px rgba(52, 152, 219, 0.6);
+        }
+        .btn-danger { 
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+        }
+        .btn-danger:hover {
+            box-shadow: 0 10px 30px rgba(231, 76, 60, 0.6);
+        }
+        .hud { 
+            position: absolute; 
+            top: 15px; 
+            left: 15px; 
+            color: white; 
+            font-size: 1.2rem; 
+            z-index: 50; 
+            background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(20,40,60,0.8));
+            padding: 12px 20px; 
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .target-overlay { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 60; 
+            cursor: crosshair;
+            background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.3) 100%);
+        }
+        .leg-buttons { 
+            position: absolute; 
+            bottom: 100px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            display: flex; 
+            gap: 20px; 
+            z-index: 70; 
+        }
+        .leg-btn { 
+            width: 80px; 
+            height: 80px; 
+            border-radius: 50%; 
+            font-size: 1.5rem; 
+            font-weight: bold; 
+            border: 4px solid white; 
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+        .leg-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+        .dive-buttons { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            grid-template-rows: repeat(2, 1fr); 
+            gap: 15px; 
+            z-index: 70; 
+        }
+        .dive-btn { 
+            width: 70px; 
+            height: 70px; 
+            border-radius: 12px; 
+            font-size: 0.9rem; 
+            font-weight: bold; 
+            border: 3px solid white; 
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+            transition: all 0.2s ease;
+        }
+        .dive-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+        .footwork-buttons { 
+            position: absolute; 
+            bottom: 100px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            display: flex; 
+            gap: 12px; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            z-index: 70; 
+        }
+        .footwork-btn { 
+            padding: 12px 20px; 
+            font-size: 1rem; 
+            font-weight: bold; 
+            border: 3px solid white; 
+            border-radius: 8px; 
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            transition: all 0.2s ease;
+        }
+        .footwork-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+        }
+        .timer-display { 
+            position: absolute; 
+            top: 80px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            font-size: 2.5rem; 
+            font-weight: bold; 
+            color: #ffd700; 
+            z-index: 50;
+            text-shadow: 0 4px 20px rgba(255, 215, 0, 0.8);
+            background: rgba(0,0,0,0.6);
+            padding: 10px 30px;
+            border-radius: 10px;
+        }
+        .power-bar-container {
+            position: absolute;
+            bottom: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 20px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 10px;
+            border: 2px solid white;
+            z-index: 70;
+            overflow: hidden;
+        }
+        .power-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #2ecc71, #f1c40f, #e74c3c);
+            transition: width 0.1s linear;
+        }
+        .power-label {
+            position: absolute;
+            bottom: 205px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 0.9rem;
+            z-index: 70;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+        }
     </style>
 </head>
 <body>
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
         <div id="main-menu" class="overlay">
-            <h1>⚽ 3D Penalty Shootout</h1>
-            <p>Choose your role and experience the thrill!</p>
-            <button class="btn" onclick="selectRole('scorer')">🎯 Penalty Scorer</button>
-            <button class="btn btn-secondary" onclick="selectRole('goalkeeper')">🧤 Goalkeeper</button>
+            <h1>⚽ PRO PENALTY SHOOTOUT</h1>
+            <p>Experience the ultimate penalty shootout with realistic graphics and physics!</p>
+            <button class="btn" onclick="selectRole('scorer')">🎯 Be the Striker</button>
+            <button class="btn btn-secondary" onclick="selectRole('goalkeeper')">🧤 Be the Goalkeeper</button>
         </div>
         <div id="scorer-instructions" class="overlay hidden">
-            <h2>Penalty Scorer</h2>
-            <p>1. Click START to begin run from behind the ball<br>2. Click on goal to aim where ball should go<br>3. When near ball, quickly choose L or R leg within 2s!</p>
-            <button class="btn" onclick="startScorerGame()">START RUN</button>
-            <button class="btn btn-danger" onclick="showMainMenu()">Back</button>
+            <h2>🎯 Penalty Striker</h2>
+            <p><strong>How to Score:</strong><br>
+            1. Click START to begin your run-up<br>
+            2. Click anywhere on the goal to aim your shot<br>
+            3. When you reach the ball, quickly choose LEFT or RIGHT leg!<br>
+            4. Time your kick perfectly for maximum accuracy!</p>
+            <button class="btn" onclick="startScorerGame()">START RUN-UP</button>
+            <button class="btn btn-danger" onclick="showMainMenu()">Back to Menu</button>
         </div>
         <div id="goalkeeper-instructions" class="overlay hidden">
-            <h2>Goalkeeper</h2>
-            <p>1. Use footwork buttons before kick (Left/Right/Wiggle/Still)<br>2. When kicker shoots, game slows down<br>3. Dive in correct direction to save!</p>
-            <button class="btn" onclick="startGoalkeeperGame()">READY</button>
-            <button class="btn btn-danger" onclick="showMainMenu()">Back</button>
+            <h2>🧤 Goalkeeper</h2>
+            <p><strong>How to Save:</strong><br>
+            1. Use footwork buttons to position yourself before the kick<br>
+            2. Watch the striker's approach carefully<br>
+            3. When the shot comes, dive in the correct direction!<br>
+            4. Quick reflexes are key to making the save!</p>
+            <button class="btn" onclick="startGoalkeeperGame()">I'M READY</button>
+            <button class="btn btn-danger" onclick="showMainMenu()">Back to Menu</button>
         </div>
-        <div id="hud" class="hud hidden"><div>Score: <span id="score">0</span> | Attempts: <span id="attempts">0</span></div></div>
+        <div id="hud" class="hud hidden">
+            <div>🏆 Score: <span id="score">0</span> | ⚽ Attempts: <span id="attempts">0</span></div>
+        </div>
         <div id="target-overlay" class="target-overlay hidden"></div>
         <div id="leg-buttons" class="leg-buttons hidden">
-            <button class="leg-btn" style="background:#3498db" onclick="kickWithLeg('left')">L</button>
-            <button class="leg-btn" style="background:#e74c3c" onclick="kickWithLeg('right')">R</button>
+            <button class="leg-btn" style="background:linear-gradient(145deg, #3498db, #2980b9)" onclick="kickWithLeg('left')">L</button>
+            <button class="leg-btn" style="background:linear-gradient(145deg, #e74c3c, #c0392b)" onclick="kickWithLeg('right')">R</button>
+        </div>
+        <div class="power-label hidden" id="power-label">POWER</div>
+        <div class="power-bar-container hidden" id="power-bar-container">
+            <div class="power-bar" id="power-bar"></div>
         </div>
         <div id="footwork-buttons" class="footwork-buttons hidden">
-            <button class="footwork-btn" style="background:#3498db" onclick="doFootwork('left')">← Left</button>
-            <button class="footwork-btn" style="background:#9b59b6" onclick="doFootwork('wiggle')">Wiggle</button>
-            <button class="footwork-btn" style="background:#2ecc71" onclick="doFootwork('still')">Still</button>
-            <button class="footwork-btn" style="background:#e67e22" onclick="doFootwork('right')">Right →</button>
+            <button class="footwork-btn" style="background:linear-gradient(145deg, #3498db, #2980b9)" onclick="doFootwork('left')">← Shift Left</button>
+            <button class="footwork-btn" style="background:linear-gradient(145deg, #9b59b6, #8e44ad)" onclick="doFootwork('wiggle')">Wiggle</button>
+            <button class="footwork-btn" style="background:linear-gradient(145deg, #2ecc71, #27ae60)" onclick="doFootwork('still')">Hold Position</button>
+            <button class="footwork-btn" style="background:linear-gradient(145deg, #e67e22, #d35400)" onclick="doFootwork('right')">Shift Right →</button>
         </div>
         <div id="dive-buttons" class="dive-buttons hidden">
-            <button class="dive-btn" style="background:#9b59b6" onclick="dive('top-left')">TL</button>
-            <button class="dive-btn" style="background:#3498db" onclick="dive('center')">STAY</button>
-            <button class="dive-btn" style="background:#e74c3c" onclick="dive('top-right')">TR</button>
-            <button class="dive-btn" style="background:#2ecc71" onclick="dive('bottom-left')">BL</button>
-            <button class="dive-btn" style="background:#f39c12" onclick="dive('bottom-right')">BR</button>
+            <button class="dive-btn" style="background:linear-gradient(145deg, #9b59b6, #8e44ad)" onclick="dive('top-left')">↖ Top Left</button>
+            <button class="dive-btn" style="background:linear-gradient(145deg, #34495e, #2c3e50)" onclick="dive('center')">Stay</button>
+            <button class="dive-btn" style="background:linear-gradient(145deg, #e74c3c, #c0392b)" onclick="dive('top-right')">Top Right ↗</button>
+            <button class="dive-btn" style="background:linear-gradient(145deg, #2ecc71, #27ae60)" onclick="dive('bottom-left')">↙ Low Left</button>
+            <button class="dive-btn" style="background:linear-gradient(145deg, #f39c12, #e67e22)" onclick="dive('bottom-right')">Low Right ↘</button>
         </div>
         <div id="timer-display" class="timer-display hidden">2.00</div>
         <div id="result-overlay" class="overlay hidden">
             <h2 id="result-title">GOAL!</h2>
             <p id="result-message">Great shot!</p>
-            <button class="btn" onclick="nextRound()">Next Kick</button>
-            <button class="btn btn-danger" onclick="showMainMenu()">Main Menu</button>
+            <button class="btn" onclick="nextRound()">⚽ Next Kick</button>
+            <button class="btn btn-danger" onclick="showMainMenu()">🏠 Main Menu</button>
         </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -91,6 +310,7 @@ let targetPos = null;
 let kickTimer = 0, kickTimerMax = 2000;
 let selectedLeg = null;
 let isRunning = false;
+let runSpeed = 0.15; // Fixed: was undefined
 
 // Goalkeeper state  
 let keeperX = 0;
@@ -102,6 +322,8 @@ let ballTargetSegment = null;
 // 3D objects
 let playerMesh, goalkeeperMesh, ballMesh, goalGroup;
 let crowd = [];
+let grassMaterial, fieldLines = [];
+let stadiumLights = [];
 
 const goalWidth = 7.32, goalHeight = 2.44, goalDepth = 2;
 
@@ -110,21 +332,42 @@ function init() {
     const canvas = document.getElementById('game-canvas');
     
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87CEEB);
-    scene.fog = new THREE.Fog(0x87CEEB, 30, 80);
+    scene.background = new THREE.Color(0x1a4d2e);
+    scene.fog = new THREE.FogExp2(0x1a4d2e, 0.015);
     
     camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 200);
     
     renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true});
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
     
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    // Enhanced lighting with stadium lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambientLight);
     
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(10, 20, 10);
+    // Main stadium floodlights
+    const floodLight1 = new THREE.SpotLight(0xffffee, 1.5, 100, Math.PI/6, 0.3);
+    floodLight1.position.set(-20, 30, -10);
+    floodLight1.castShadow = true;
+    floodLight1.shadow.mapSize.width = 2048;
+    floodLight1.shadow.mapSize.height = 2048;
+    scene.add(floodLight1);
+    stadiumLights.push(floodLight1);
+    
+    const floodLight2 = new THREE.SpotLight(0xffffee, 1.5, 100, Math.PI/6, 0.3);
+    floodLight2.position.set(20, 30, -10);
+    floodLight2.castShadow = true;
+    scene.add(floodLight2);
+    stadiumLights.push(floodLight2);
+    
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    dirLight.position.set(15, 25, 15);
     dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
     scene.add(dirLight);
     
     createGrass();
@@ -142,79 +385,263 @@ function init() {
 }
 
 function createGrass() {
-    const geo = new THREE.PlaneGeometry(80, 120);
-    const mat = new THREE.MeshLambertMaterial({color: 0x228B22});
-    const grass = new THREE.Mesh(geo, mat);
+    // Multi-layer grass with stripes
+    const grassGeo = new THREE.PlaneGeometry(80, 120);
+    
+    // Base grass layer with stripe pattern
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    
+    // Draw striped grass pattern
+    for (let i = 0; i < 512; i++) {
+        const shade = (Math.floor(i / 32) % 2 === 0) ? '#2d5a1f' : '#3a7a2f';
+        ctx.fillStyle = shade;
+        ctx.fillRect(0, i, 512, 1);
+    }
+    
+    const grassTexture = new THREE.CanvasTexture(canvas);
+    grassTexture.wrapS = THREE.RepeatWrapping;
+    grassTexture.wrapT = THREE.RepeatWrapping;
+    grassTexture.repeat.set(4, 6);
+    
+    grassMaterial = new THREE.MeshStandardMaterial({ 
+        map: grassTexture,
+        roughness: 0.9,
+        metalness: 0.0
+    });
+    
+    const grass = new THREE.Mesh(grassGeo, grassMaterial);
     grass.rotation.x = -Math.PI/2;
     grass.position.z = -20;
     grass.receiveShadow = true;
     scene.add(grass);
     
-    const spotGeo = new THREE.CircleGeometry(0.3, 16);
-    const spotMat = new THREE.MeshBasicMaterial({color: 0xffffff});
+    // Penalty spot
+    const spotGeo = new THREE.CircleGeometry(0.3, 32);
+    const spotMat = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 0.8});
     const spot = new THREE.Mesh(spotGeo, spotMat);
     spot.rotation.x = -Math.PI/2;
     spot.position.y = 0.02;
+    spot.receiveShadow = true;
     scene.add(spot);
+    
+    // Goal area lines
+    createFieldLines();
+}
+
+function createFieldLines() {
+    const lineMaterial = new THREE.MeshBasicMaterial({color: 0xffffff, opacity: 0.8, transparent: true});
+    
+    // Penalty box outline
+    const penaltyBoxWidth = 16.5;
+    const penaltyBoxLength = 16.5;
+    
+    const createLine = (x1, z1, x2, z2) => {
+        const points = [new THREE.Vector3(x1, 0.03, z1), new THREE.Vector3(x2, 0.03, z2)];
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.Line(geometry, lineMaterial);
+        scene.add(line);
+        fieldLines.push(line);
+    };
+    
+    // Penalty area
+    createLine(-penaltyBoxWidth/2, -5, penaltyBoxWidth/2, -5);
+    createLine(-penaltyBoxWidth/2, -5, -penaltyBoxWidth/2, -5-penaltyBoxLength);
+    createLine(penaltyBoxWidth/2, -5, penaltyBoxWidth/2, -5-penaltyBoxLength);
+    
+    // Goal line
+    createLine(-penaltyBoxWidth/2, -5-goalDepth, penaltyBoxWidth/2, -5-goalDepth);
 }
 
 function createGoal() {
     goalGroup = new THREE.Group();
-    const postMat = new THREE.MeshLambertMaterial({color: 0xffffff});
-    const postGeo = new THREE.CylinderGeometry(0.08, 0.08, goalHeight, 12);
+    
+    // Realistic goal posts with proper material
+    const postMat = new THREE.MeshStandardMaterial({ 
+        color: 0xffffff, 
+        roughness: 0.3,
+        metalness: 0.5
+    });
+    const postGeo = new THREE.CylinderGeometry(0.08, 0.08, goalHeight, 16);
     
     const leftPost = new THREE.Mesh(postGeo, postMat);
     leftPost.position.set(-goalWidth/2, goalHeight/2, 0);
+    leftPost.castShadow = true;
     goalGroup.add(leftPost);
     
     const rightPost = new THREE.Mesh(postGeo, postMat);
     rightPost.position.set(goalWidth/2, goalHeight/2, 0);
+    rightPost.castShadow = true;
     goalGroup.add(rightPost);
     
-    const crossGeo = new THREE.CylinderGeometry(0.08, 0.08, goalWidth, 12);
+    const crossGeo = new THREE.CylinderGeometry(0.08, 0.08, goalWidth, 16);
     const crossbar = new THREE.Mesh(crossGeo, postMat);
     crossbar.rotation.z = Math.PI/2;
     crossbar.position.set(0, goalHeight, 0);
+    crossbar.castShadow = true;
     goalGroup.add(crossbar);
     
-    const netMat = new THREE.MeshBasicMaterial({color: 0xddddaa, wireframe: true, transparent: true, opacity: 0.4});
-    const backNet = new THREE.Mesh(new THREE.PlaneGeometry(goalWidth, goalHeight), netMat);
+    // Realistic net with proper geometry
+    const netGeo = new THREE.PlaneGeometry(goalWidth, goalHeight, 20, 20);
+    const netMat = new THREE.MeshStandardMaterial({
+        color: 0xeeeeee,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.DoubleSide
+    });
+    
+    // Back net
+    const backNet = new THREE.Mesh(netGeo, netMat);
     backNet.position.set(0, goalHeight/2, -goalDepth);
+    backNet.receiveShadow = true;
     goalGroup.add(backNet);
+    
+    // Side nets
+    const sideNetGeo = new THREE.PlaneGeometry(goalDepth, goalHeight, 10, 20);
+    const leftSideNet = new THREE.Mesh(sideNetGeo, netMat);
+    leftSideNet.rotation.y = Math.PI/2;
+    leftSideNet.position.set(-goalWidth/2, goalHeight/2, -goalDepth/2);
+    goalGroup.add(leftSideNet);
+    
+    const rightSideNet = new THREE.Mesh(sideNetGeo, netMat);
+    rightSideNet.rotation.y = -Math.PI/2;
+    rightSideNet.position.set(goalWidth/2, goalHeight/2, -goalDepth/2);
+    goalGroup.add(rightSideNet);
+    
+    // Top net
+    const topNetGeo = new THREE.PlaneGeometry(goalWidth, goalDepth, 20, 10);
+    const topNet = new THREE.Mesh(topNetGeo, netMat);
+    topNet.rotation.x = Math.PI/2;
+    topNet.position.set(0, goalHeight, -goalDepth/2);
+    goalGroup.add(topNet);
     
     goalGroup.position.z = -5;
     scene.add(goalGroup);
 }
 
 function createStadium() {
-    const stadiumGeo = new THREE.BoxGeometry(100, 25, 150);
-    const stadiumMat = new THREE.MeshLambertMaterial({color: 0x888888});
-    const stadium = new THREE.Mesh(stadiumGeo, stadiumMat);
-    stadium.position.set(0, 12, -40);
-    scene.add(stadium);
+    // Stadium stands with multiple levels
+    const standMat = new THREE.MeshStandardMaterial({color: 0x4a5568, roughness: 0.8});
+    
+    // Main stand structure
+    const standGeo = new THREE.BoxGeometry(90, 20, 10);
+    const mainStand = new THREE.Mesh(standGeo, standMat);
+    mainStand.position.set(0, 10, -60);
+    mainStand.castShadow = true;
+    mainStand.receiveShadow = true;
+    scene.add(mainStand);
+    
+    // Roof structure
+    const roofGeo = new THREE.BoxGeometry(95, 2, 25);
+    const roofMat = new THREE.MeshStandardMaterial({color: 0x2d3748, roughness: 0.6, metalness: 0.3});
+    const roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.position.set(0, 22, -55);
+    roof.castShadow = true;
+    scene.add(roof);
+    
+    // Support pillars
+    const pillarGeo = new THREE.CylinderGeometry(0.5, 0.5, 22, 8);
+    const pillarPositions = [[-40, 11, -48], [40, 11, -48], [-40, 11, -62], [40, 11, -62]];
+    pillarPositions.forEach(pos => {
+        const pillar = new THREE.Mesh(pillarGeo, standMat);
+        pillar.position.set(...pos);
+        pillar.castShadow = true;
+        scene.add(pillar);
+    });
+    
+    // Floodlight towers
+    const towerGeo = new THREE.CylinderGeometry(1, 1.2, 35, 8);
+    const towerMat = new THREE.MeshStandardMaterial({color: 0x718096, roughness: 0.5});
+    const towerPositions = [[-45, 17.5, -20], [45, 17.5, -20]];
+    towerPositions.forEach(pos => {
+        const tower = new THREE.Mesh(towerGeo, towerMat);
+        tower.position.set(...pos);
+        tower.castShadow = true;
+        scene.add(tower);
+        
+        // Light fixtures on towers
+        const fixtureGeo = new THREE.BoxGeometry(4, 2, 2);
+        const fixtureMat = new THREE.MeshStandardMaterial({color: 0x2d3748, emissive: 0xffffee, emissiveIntensity: 0.3});
+        const fixture = new THREE.Mesh(fixtureGeo, fixtureMat);
+        fixture.position.set(pos[0], 35, pos[2]);
+        scene.add(fixture);
+    });
 }
 
 function createCrowd() {
-    const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0xffffff];
-    for (let i = 0; i < 150; i++) {
-        const geo = new THREE.BoxGeometry(0.4, 1.2, 0.4);
-        const mat = new THREE.MeshLambertMaterial({color: colors[Math.floor(Math.random()*colors.length)]});
+    // Create animated crowd with more variety
+    const colors = [0xe74c3c, 0x3498db, 0xf1c40f, 0x2ecc71, 0x9b59b6, 0xecf0f1, 0xe67e22, 0x1abc9c];
+    const crowdGroup = new THREE.Group();
+    
+    for (let i = 0; i < 400; i++) {
+        const geo = new THREE.CapsuleGeometry(0.25, 0.8, 4, 8);
+        const mat = new THREE.MeshStandardMaterial({
+            color: colors[Math.floor(Math.random() * colors.length)],
+            roughness: 0.7
+        });
         const person = new THREE.Mesh(geo, mat);
-        const angle = (i/150) * Math.PI * 2;
-        const radius = 35 + Math.random() * 25;
-        person.position.set(Math.cos(angle)*radius, 8 + Math.random()*15, -45 + Math.sin(angle)*15);
+        
+        // Distribute crowd in stands
+        const angle = (i / 400) * Math.PI * 2;
+        const radius = 40 + Math.random() * 30;
+        const height = 5 + Math.random() * 18;
+        
+        person.position.set(
+            Math.cos(angle) * radius,
+            height,
+            -50 + Math.sin(angle) * 20
+        );
+        
+        // Random rotation for variety
+        person.rotation.y = Math.random() * Math.PI;
+        person.castShadow = true;
         crowd.push(person);
-        scene.add(person);
+        crowdGroup.add(person);
     }
+    
+    scene.add(crowdGroup);
 }
 
 function createBall() {
-    const geo = new THREE.SphereGeometry(0.22, 24, 24);
-    const mat = new THREE.MeshLambertMaterial({color: 0xffffff});
-    ballMesh = new THREE.Mesh(geo, mat);
-    ballMesh.position.set(0, 0.22, 0);
+    // Realistic soccer ball with pentagon pattern
+    const ballGroup = new THREE.Group();
+    
+    // Main sphere
+    const geo = new THREE.SphereGeometry(0.22, 32, 32);
+    const whiteMat = new THREE.MeshStandardMaterial({ 
+        color: 0xffffff, 
+        roughness: 0.4,
+        metalness: 0.1
+    });
+    const blackMat = new THREE.MeshStandardMaterial({ 
+        color: 0x1a1a1a, 
+        roughness: 0.4,
+        metalness: 0.1
+    });
+    
+    ballMesh = new THREE.Mesh(geo, whiteMat);
     ballMesh.castShadow = true;
-    scene.add(ballMesh);
+    ballMesh.receiveShadow = true;
+    ballGroup.add(ballMesh);
+    
+    // Add some black patches for classic look
+    for (let i = 0; i < 6; i++) {
+        const patchGeo = new THREE.SphereGeometry(0.225, 16, 16, 0, Math.PI * 2, 0, Math.PI/3);
+        const patch = new THREE.Mesh(patchGeo, blackMat);
+        patch.rotation.set(
+            Math.random() * Math.PI,
+            Math.random() * Math.PI * 2,
+            Math.random() * Math.PI
+        );
+        ballGroup.add(patch);
+    }
+    
+    ballGroup.position.set(0, 0.22, 0);
+    scene.add(ballGroup);
+    ballMesh = ballGroup; // Update reference
 }
 
 function createPlayer() {

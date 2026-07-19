@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Football Penalty Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background: #000;
+        }
+        
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .menu-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a472a 0%, #2d5016 50%, #1a472a 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            z-index: 100;
+        }
+        
+        .menu-title {
+            font-size: 48px;
+            color: #fff;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+            margin-bottom: 40px;
+            font-weight: bold;
+        }
+        
+        .role-btn {
+            padding: 20px 60px;
+            font-size: 24px;
+            margin: 15px;
+            background: linear-gradient(180deg, #ffd700 0%, #ff8c00 100%);
+            border: 3px solid #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #000;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .role-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+        
+        .hud {
+            position: absolute;
+            pointer-events: auto;
+            display: none;
+        }
+        
+        #scoreDisplay {
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 28px;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.5);
+            padding: 10px 30px;
+            border-radius: 20px;
+        }
+        
+        #actionButtons {
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+        }
+        
+        .action-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(180deg, #ff6b6b 0%, #c92a2a 100%);
+            border: 3px solid #fff;
+            border-radius: 50px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            transition: transform 0.1s;
+        }
+        
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .action-btn.left {
+            background: linear-gradient(180deg, #4ecdc4 0%, #2b8a8a 100%);
+        }
+        
+        .action-btn.right {
+            background: linear-gradient(180deg, #ffe66d 0%, #c9a227 100%);
+            color: #000;
+        }
+        
+        #kickPrompt {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            display: none;
+            text-align: center;
+        }
+        
+        #diveButtons {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .dive-btn {
+            padding: 20px 30px;
+            font-size: 16px;
+            background: linear-gradient(180deg, #748ffc 0%, #4c6ef5 100%);
+            border: 3px solid #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+        }
+        
+        .dive-btn:active {
+            transform: scale(0.95);
+        }
+        
+        #message {
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: #fff;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+            display: none;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        #startBtn {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 20px 60px;
+            font-size: 28px;
+            background: linear-gradient(180deg, #51cf66 0%, #2b8a3e 100%);
+            border: 3px solid #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            display: none;
+            pointer-events: auto;
+        }
+        
+        #resetBtn {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            padding: 15px 30px;
+            font-size: 18px;
+            background: linear-gradient(180deg, #868e96 0%, #495057 100%);
+            border: 3px solid #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            display: none;
+            pointer-events: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .menu-title {
+                font-size: 32px;
+            }
+            
+            .role-btn {
+                padding: 15px 40px;
+                font-size: 20px;
+            }
+            
+            .action-btn {
+                padding: 12px 30px;
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ui">
+        <!-- Main Menu -->
+        <div id="mainMenu" class="menu-screen">
+            <div class="menu-title">⚽ PENALTY SHOOTOUT ⚽</div>
+            <button class="role-btn" onclick="selectRole('scorer')">🎯 Penalty Scorer</button>
+            <button class="role-btn" onclick="selectRole('goalkeeper')">🧤 Goalkeeper</button>
+        </div>
+        
+        <!-- HUD Elements -->
+        <div id="scoreDisplay" class="hud">Score: 0/0 | Goals: 0 | Saves: 0</div>
+        
+        <div id="actionButtons" class="hud">
+            <button class="action-btn left" id="leftBtn">L Leg</button>
+            <button class="action-btn right" id="rightBtn">R Leg</button>
+        </div>
+        
+        <div id="kickPrompt">TAP L OR R TO KICK!</div>
+        
+        <div id="diveButtons">
+            <div></div>
+            <button class="dive-btn" onclick="dive('top-center')">TOP</button>
+            <div></div>
+            <button class="dive-btn" onclick="dive('mid-left')">LEFT</button>
+            <button class="dive-btn" onclick="dive('stay')">STAY</button>
+            <button class="dive-btn" onclick="dive('mid-right')">RIGHT</button>
+            <div></div>
+            <button class="dive-btn" onclick="dive('bottom-left')">BL</button>
+            <button class="dive-btn" onclick="dive('bottom-center')">BOTTOM</button>
+            <button class="dive-btn" onclick="dive('bottom-right')">BR</button>
+        </div>
+        
+        <div id="message"></div>
+        <button id="startBtn" onclick="startRound()">▶ START</button>
+        <button id="resetBtn" onclick="resetGame()">🔄 Reset</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Game State
+        let gameState = {
+            role: null,
+            phase: 'menu', // menu, ready, running, kicking, result
+            score: 0,
+            totalShots: 0,
+            goals: 0,
+            saves: 0,
+            ballPosition: { x: 0, y: 0.2, z: 11 },
+            goalkeeperPosition: { x: 0, y: 0, z: 0 },
+            ballTarget: { x: 0, y: 0, z: -1 },
+            kickLeg: null,
+            diveDirection: null,
+            isSlowMotion: false,
+            roundStarted: false
+        };
+
+        // Three.js Setup
+        const canvas = document.getElementById('gameCanvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 20, 10);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+
+        const spotLight = new THREE.SpotLight(0xffd700, 0.5);
+        spotLight.position.set(0, 30, 0);
+        spotLight.angle = Math.PI / 4;
+        spotLight.penumbra = 0.3;
+        scene.add(spotLight);
+
+        // Create Grass Field
+        function createGrassField() {
+            const grassGeometry = new THREE.PlaneGeometry(100, 150);
+            const grassMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x2d5016,
+                roughness: 0.8,
+                metalness: 0.1
+            });
+            const grass = new THREE.Mesh(grassGeometry, grassMaterial);
+            grass.rotation.x = -Math.PI / 2;
+            grass.position.y = -0.01;
+            grass.receiveShadow = true;
+            scene.add(grass);
+
+            // Add field lines
+            const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+            
+            // Penalty box
+            const penaltyBoxPoints = [];
+            penaltyBoxPoints.push(new THREE.Vector3(-20, 0.02, 0));
+            penaltyBoxPoints.push(new THREE.Vector3(-20, 0.02, 16));
+            penaltyBoxPoints.push(new THREE.Vector3(20, 0.02, 16));
+            penaltyBoxPoints.push(new THREE.Vector3(20, 0.02, 0));
+            const penaltyBoxGeometry = new THREE.BufferGeometry().setFromPoints(penaltyBoxPoints);
+            const penaltyBox = new THREE.LineLoop(penaltyBoxGeometry, lineMaterial);
+            scene.add(penaltyBox);
+
+            // Penalty spot
+            const spotGeometry = new THREE.CircleGeometry(0.3, 32);
+            const spotMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const spot = new THREE.Mesh(spotGeometry, spotMaterial);
+            spot.rotation.x = -Math.PI / 2;
+            spot.position.set(0, 0.02, 11);
+            scene.add(spot);
+        }
+
+        // Create Goal
+        function createGoal() {
+            const goalGroup = new THREE.Group();
+            const postMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xffffff,
+                roughness: 0.3,
+                metalness: 0.5
+            });
+
+            // Goal posts
+            const postGeometry = new THREE.CylinderGeometry(0.1, 0.1, 7.32, 16);
+            const leftPost = new THREE.Mesh(postGeometry, postMaterial);
+            leftPost.position.set(-3.66, 3.66, 0);
+            leftPost.castShadow = true;
+            goalGroup.add(leftPost);
+
+            const rightPost = new THREE.Mesh(postGeometry, postMaterial);
+            rightPost.position.set(3.66, 3.66, 0);
+            rightPost.castShadow = true;
+            goalGroup.add(rightPost);
+
+            const crossbarGeometry = new THREE.CylinderGeometry(0.1, 0.1, 7.32, 16);
+            const crossbar = new THREE.Mesh(crossbarGeometry, postMaterial);
+            crossbar.rotation.z = Math.PI / 2;
+            crossbar.position.set(0, 7.32, 0);
+            crossbar.castShadow = true;
+            goalGroup.add(crossbar);
+
+            // Goal Net
+            const netGeometry = new THREE.PlaneGeometry(7.32, 7.32);
+            const netMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xcccccc,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.3,
+                wireframe: true
+            });
+            const backNet = new THREE.Mesh(netGeometry, netMaterial);
+            backNet.position.set(0, 3.66, -2);
+            goalGroup.add(backNet);
+
+            const topNetGeometry = new THREE.PlaneGeometry(7.32, 2);
+            const topNet = new THREE.Mesh(topNetGeometry, netMaterial);
+            topNet.rotation.x = Math.PI / 2;
+            topNet.position.set(0, 7.32, -1);
+            goalGroup.add(topNet);
+
+            goalGroup.position.z = 0;
+            scene.add(goalGroup);
+            return goalGroup;
+        }
+
+        // Create Ball
+        function createBall() {
+            const ballGeometry = new THREE.SphereGeometry(0.22, 32, 32);
+            const ballMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xffffff,
+                roughness: 0.4,
+                metalness: 0.1
+            });
+            const ball = new THREE.Mesh(ballGeometry, ballMaterial);
+            ball.castShadow = true;
+            
+            // Add pentagon patterns
+            const patternGeometry = new THREE.IcosahedronGeometry(0.23, 1);
+            const patternMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x000000,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.3
+            });
+            const pattern = new THREE.Mesh(patternGeometry, patternMaterial);
+            ball.add(pattern);
+            
+            scene.add(ball);
+            return ball;
+        }
+
+        // Create Player (Polygon Style)
+        function createPlayer(color, isGoalkeeper = false) {
+            const playerGroup = new THREE.Group();
+            const material = new THREE.MeshStandardMaterial({ 
+                color: color,
+                roughness: 0.5,
+                metalness: 0.2
+            });
+
+            // Body (torso)
+            const bodyGeometry = new THREE.BoxGeometry(0.6, 0.8, 0.3);
+            const body = new THREE.Mesh(bodyGeometry, material);
+            body.position.y = 1.2;
+            body.castShadow = true;
+            playerGroup.add(body);
+
+            // Head
+            const headGeometry = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+            const head = new THREE.Mesh(headGeometry, new THREE.MeshStandardMaterial({ 
+                color: 0xffdbac,
+                roughness: 0.5
+            }));
+            head.position.y = 1.8;
+            head.castShadow = true;
+            playerGroup.add(head);
+
+            // Arms
+            const armGeometry = new THREE.BoxGeometry(0.15, 0.6, 0.15);
+            const leftArm = new THREE.Mesh(armGeometry, material);
+            leftArm.position.set(-0.4, 1.2, 0);
+            leftArm.castShadow = true;
+            playerGroup.add(leftArm);
+
+            const rightArm = new THREE.Mesh(armGeometry, material);
+            rightArm.position.set(0.4, 1.2, 0);
+            rightArm.castShadow = true;
+            playerGroup.add(rightArm);
+
+            // Legs
+            const legGeometry = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+            const leftLeg = new THREE.Mesh(legGeometry, new THREE.MeshStandardMaterial({ 
+                color: 0x000000,
+                roughness: 0.5
+            }));
+            leftLeg.position.set(-0.2, 0.35, 0);
+            leftLeg.castShadow = true;
+            playerGroup.add(leftLeg);
+
+            const rightLeg = new THREE.Mesh(legGeometry, new THREE.MeshStandardMaterial({ 
+                color: 0x000000,
+                roughness: 0.5
+            }));
+            rightLeg.position.set(0.2, 0.35, 0);
+            rightLeg.castShadow = true;
+            playerGroup.add(rightLeg);
+
+            if (isGoalkeeper) {
+                // Make goalkeeper slightly larger
+                playerGroup.scale.set(1.1, 1.1, 1.1);
+            }
+
+            playerGroup.leftArm = leftArm;
+            playerGroup.rightArm = rightArm;
+            playerGroup.leftLeg = leftLeg;
+            playerGroup.rightLeg = rightLeg;
+
+            return playerGroup;
+        }
+
+        // Create Stadium with Crowd
+        function createStadium() {
+            const stadiumGroup = new THREE.Group();
+            
+            // Stadium stands
+            const standMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x8b4513,
+                roughness: 0.8
+            });
+
+            // Left stand
+            const leftStandGeometry = new THREE.BoxGeometry(10, 8, 60);
+            const leftStand = new THREE.Mesh(leftStandGeometry, standMaterial);
+            leftStand.position.set(-35, 4, 0);
+            stadiumGroup.add(leftStand);
+
+            // Right stand
+            const rightStand = new THREE.Mesh(leftStandGeometry, standMaterial);
+            rightStand.position.set(35, 4, 0);
+            stadiumGroup.add(rightStand);
+
+            // Back stand
+            const backStandGeometry = new THREE.BoxGeometry(80, 8, 15);
+            const backStand = new THREE.Mesh(backStandGeometry, standMaterial);
+            backStand.position.set(0, 4, -25);
+            stadiumGroup.add(backStand);
+
+            // Crowd (particles)
+            const crowdGeometry = new THREE.BufferGeometry();
+            const crowdCount = 2000;
+            const positions = new Float32Array(crowdCount * 3);
+            const colors = new Float32Array(crowdCount * 3);
+
+            const crowdColors = [
+                new THREE.Color(0xff0000),
+                new THREE.Color(0x0000ff),
+                new THREE.Color(0xffff00),
+                new THREE.Color(0x00ff00),
+                new THREE.Color(0xffffff)
+            ];
+
+            for (let i = 0; i < crowdCount; i++) {
+                const stand = Math.floor(Math.random() * 3);
+                let x, y, z;
+                
+                if (stand === 0) { // Left
+                    x = -30 + Math.random() * 10;
+                    y = 2 + Math.random() * 6;
+                    z = -25 + Math.random() * 50;
+                } else if (stand === 1) { // Right
+                    x = 20 + Math.random() * 10;
+                    y = 2 + Math.random() * 6;
+                    z = -25 + Math.random() * 50;
+                } else { // Back
+                    x = -35 + Math.random() * 70;
+                    y = 2 + Math.random() * 6;
+                    z = -30 + Math.random() * 10;
+                }
+
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
+
+                const color = crowdColors[Math.floor(Math.random() * crowdColors.length)];
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
+            }
+
+            crowdGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            crowdGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const crowdMaterial = new THREE.PointsMaterial({ 
+                size: 0.3,
+                vertexColors: true
+            });
+            const crowd = new THREE.Points(crowdGeometry, crowdMaterial);
+            stadiumGroup.add(crowd);
+
+            scene.add(stadiumGroup);
+        }
+
+        // Initialize Game Objects
+        createGrassField();
+        createGoal();
+        const ball = createBall();
+        const goalkeeper = createPlayer(0x00ff00, true);
+        const scorer = createPlayer(0xff0000);
+
+        // Position objects
+        ball.position.set(gameState.ballPosition.x, gameState.ballPosition.y, gameState.ballPosition.z);
+        goalkeeper.position.set(0, 0, 1);
+        goalkeeper.rotation.y = Math.PI;
+        scene.add(goalkeeper);
+
+        scorer.position.set(0, 0, 11);
+        scene.add(scorer);
+
+        createStadium();
+
+        // Camera positioning based on role
+        function updateCamera() {
+            if (gameState.role === 'scorer') {
+                // FPS view from scorer perspective
+                camera.position.set(0, 1.7, 15);
+                camera.lookAt(0, 3, 0);
+            } else if (gameState.role === 'goalkeeper') {
+                // FPS view from goalkeeper perspective
+                camera.position.set(0, 1.8, 2);
+                camera.lookAt(0, 3, 11);
+            }
+        }
+
+        // UI Functions
+        function selectRole(role) {
+            gameState.role = role;
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('scoreDisplay').style.display = 'block';
+            document.getElementById('resetBtn').style.display = 'block';
+            updateCamera();
+            showStartButton();
+        }
+
+        function showStartButton() {
+            document.getElementById('startBtn').style.display = 'block';
+            gameState.phase = 'ready';
+        }
+
+        function startRound() {
+            document.getElementById('startBtn').style.display = 'none';
+            gameState.roundStarted = true;
+            
+            if (gameState.role === 'scorer') {
+                startScorerRound();
+            } else {
+                startGoalkeeperRound();
+            }
+        }
+
+        function startScorerRound() {
+            gameState.phase = 'running';
+            showMessage('RUNNING...');
+            
+            // Animate scorer running towards ball
+            let progress = 0;
+            const runInterval = setInterval(() => {
+                progress += 0.02;
+                scorer.position.z = 11 - progress * 7;
+                
+                // Animate legs
+                scorer.leftLeg.rotation.x = Math.sin(progress * 20) * 0.5;
+                scorer.rightLeg.rotation.x = Math.cos(progress * 20) * 0.5;
+                
+                // Goalkeeper moves slightly
+                goalkeeper.position.x = (Math.random() - 0.5) * 2;
+                
+                // Update camera to follow
+                camera.position.z = 15 - progress * 5;
+                camera.lookAt(0, 2, 2);
+
+                if (progress >= 1) {
+                    clearInterval(runInterval);
+                    gameState.phase = 'kicking';
+                    hideMessage();
+                    document.getElementById('actionButtons').style.display = 'flex';
+                    document.getElementById('kickPrompt').style.display = 'block';
+                }
+            }, 50);
+        }
+
+        function startGoalkeeperRound() {
+            gameState.phase = 'waiting';
+            showMessage('PREPARE TO DIVE!');
+            
+            // Show dive buttons after delay
+            setTimeout(() => {
+                hideMessage();
+                // AI scorer runs and kicks
+                let progress = 0;
+                const runInterval = setInterval(() => {
+                    progress += 0.02;
+                    scorer.position.z = 11 - progress * 7;
+                    
+                    // Animate legs
+                    scorer.leftLeg.rotation.x = Math.sin(progress * 20) * 0.5;
+                    scorer.rightLeg.rotation.x = Math.cos(progress * 20) * 0.5;
+
+                    if (progress >= 1) {
+                        clearInterval(runInterval);
+                        // Determine shot direction
+                        const directions = ['top-left', 'top-center', 'top-right', 
+                                          'mid-left', 'mid-right', 
+                                          'bottom-left', 'bottom-center', 'bottom-right'];
+                        gameState.ballTarget.direction = directions[Math.floor(Math.random() * directions.length)];
+                        
+                        // Show dive buttons
+                        document.getElementById('diveButtons').style.display = 'grid';
+                        gameState.phase = 'diving';
+                        gameState.isSlowMotion = true;
+                    }
+                }, 50);
+            }, 1000);
+        }
+
+        // Kick handling for scorer
+        document.getElementById('leftBtn').addEventListener('click', () => handleKick('left'));
+        document.getElementById('rightBtn').addEventListener('click', () => handleKick('right'));
+
+        function handleKick(leg) {
+            if (gameState.phase !== 'kicking') return;
+            
+            gameState.kickLeg = leg;
+            document.getElementById('actionButtons').style.display = 'none';
+            document.getElementById('kickPrompt').style.display = 'none';
+            
+            // Determine shot accuracy (2/3 success rate)
+            const accuracy = Math.random();
+            const isGoodShot = accuracy < 0.67;
+            
+            // Calculate target
+            let targetX, targetY;
+            
+            if (isGoodShot) {
+                // Good shot - random placement in goal
+                targetX = (Math.random() - 0.5) * 6;
+                targetY = 0.5 + Math.random() * 5;
+            } else {
+                // Bad shot - more likely to miss
+                targetX = (Math.random() - 0.5) * 12;
+                targetY = Math.random() > 0.5 ? 8 + Math.random() * 2 : -1 - Math.random();
+            }
+            
+            gameState.ballTarget = { x: targetX, y: targetY, z: -1 };
+            
+            // Animate kick
+            if (leg === 'left') {
+                scorer.leftLeg.rotation.x = -1.5;
+            } else {
+                scorer.rightLeg.rotation.x = -1.5;
+            }
+            
+            // Shoot ball
+            shootBall(targetX, targetY);
+        }
+
+        function dive(direction) {
+            if (gameState.phase !== 'diving') return;
+            
+            gameState.diveDirection = direction;
+            document.getElementById('diveButtons').style.display = 'none';
+            
+            // Animate goalkeeper dive
+            animateGoalkeeperDive(direction);
+        }
+
+        function animateGoalkeeperDive(direction) {
+            let diveX = 0, diveY = 0;
+            
+            switch(direction) {
+                case 'top-left': diveX = -2; diveY = 3; break;
+                case 'top-center': diveX = 0; diveY = 3.5; break;
+                case 'top-right': diveX = 2; diveY = 3; break;
+                case 'mid-left': diveX = -2.5; diveY = 1.5; break;
+                case 'mid-right': diveX = 2.5; diveY = 1.5; break;
+                case 'bottom-left': diveX = -2; diveY = 0.3; break;
+                case 'bottom-center': diveX = 0; diveY = 0.3; break;
+                case 'bottom-right': diveX = 2; diveY = 0.3; break;
+                case 'stay': diveX = 0; diveY = 0; break;
+            }
+            
+            const startX = goalkeeper.position.x;
+            const startY = goalkeeper.position.y;
+            let progress = 0;
+            
+            const diveInterval = setInterval(() => {
+                progress += 0.05;
+                goalkeeper.position.x = startX + diveX * progress;
+                goalkeeper.position.y = startY + diveY * progress;
+                goalkeeper.rotation.z = -diveX * progress * 0.3;
+                
+                if (progress >= 1) {
+                    clearInterval(diveInterval);
+                }
+            }, 30);
+        }
+
+        function shootBall(targetX, targetY) {
+            gameState.phase = 'ballFlying';
+            
+            const startPos = { ...ball.position };
+            const endPos = { x: targetX, y: targetY, z: -1 };
+            let progress = 0;
+            const speed = gameState.isSlowMotion ? 0.01 : 0.03;
+            
+            const shootInterval = setInterval(() => {
+                progress += speed;
+                
+                // Parabolic arc
+                ball.position.x = startPos.x + (endPos.x - startPos.x) * progress;
+                ball.position.y = startPos.y + (endPos.y - startPos.y) * progress + Math.sin(progress * Math.PI) * 2;
+                ball.position.z = startPos.z + (endPos.z - startPos.z) * progress;
+                
+                // Rotate ball
+                ball.rotation.x += 0.2;
+                ball.rotation.z += 0.1;
+
+                if (progress >= 1) {
+                    clearInterval(shootInterval);
+                    checkResult(targetX, targetY);
+                }
+            }, 30);
+        }
+
+        function checkResult(targetX, targetY) {
+            let isGoal = false;
+            let message = '';
+            
+            // Check if in goal area
+            const inGoalX = Math.abs(targetX) < 3.66;
+            const inGoalY = targetY > 0 && targetY < 7.32;
+            
+            if (gameState.role === 'scorer') {
+                if (inGoalX && inGoalY) {
+                    // Check if goalkeeper saved it
+                    const gkReachX = Math.abs(goalkeeper.position.x) + 1.5;
+                    const gkReachY = goalkeeper.position.y + 1.5;
+                    
+                    if (Math.abs(targetX - goalkeeper.position.x) < gkReachX && 
+                        Math.abs(targetY - goalkeeper.position.y) < gkReachY) {
+                        message = 'SAVED! 🧤';
+                        gameState.saves++;
+                    } else {
+                        message = 'GOAL! ⚽';
+                        gameState.goals++;
+                        isGoal = true;
+                    }
+                } else {
+                    message = 'MISS! ❌';
+                }
+                
+                gameState.totalShots++;
+                if (isGoal) gameState.score++;
+            } else {
+                // Goalkeeper mode
+                if (inGoalX && inGoalY) {
+                    // Ball is on target
+                    const actualDirection = getDirectionFromTarget(targetX, targetY);
+                    
+                    if (gameState.diveDirection === actualDirection || 
+                        (gameState.diveDirection === 'stay' && Math.abs(targetX) < 1)) {
+                        message = 'SAVE! 🧤';
+                        gameState.saves++;
+                        gameState.score++;
+                    } else {
+                        message = 'GOAL! ⚽';
+                        gameState.goals++;
+                    }
+                    gameState.totalShots++;
+                } else {
+                    message = 'MISS! ❌';
+                    gameState.totalShots++;
+                }
+            }
+            
+            showMessage(message);
+            updateScoreDisplay();
+            
+            setTimeout(resetRound, 2000);
+        }
+
+        function getDirectionFromTarget(x, y) {
+            if (y > 5) {
+                if (x < -1.5) return 'top-left';
+                if (x > 1.5) return 'top-right';
+                return 'top-center';
+            } else if (y > 2) {
+                if (x < -1.5) return 'mid-left';
+                if (x > 1.5) return 'mid-right';
+                return 'mid-center';
+            } else {
+                if (x < -1.5) return 'bottom-left';
+                if (x > 1.5) return 'bottom-right';
+                return 'bottom-center';
+            }
+        }
+
+        function resetRound() {
+            hideMessage();
+            gameState.phase = 'ready';
+            gameState.isSlowMotion = false;
+            
+            // Reset positions
+            ball.position.set(0, 0.2, 11);
+            ball.rotation.set(0, 0, 0);
+            goalkeeper.position.set(0, 0, 1);
+            goalkeeper.rotation.set(0, Math.PI, 0);
+            scorer.position.set(0, 0, 11);
+            
+            updateCamera();
+            showStartButton();
+        }
+
+        function resetGame() {
+            gameState.score = 0;
+            gameState.totalShots = 0;
+            gameState.goals = 0;
+            gameState.saves = 0;
+            updateScoreDisplay();
+            resetRound();
+        }
+
+        function showMessage(text) {
+            const msgEl = document.getElementById('message');
+            msgEl.textContent = text;
+            msgEl.style.display = 'block';
+        }
+
+        function hideMessage() {
+            document.getElementById('message').style.display = 'none';
+        }
+
+        function updateScoreDisplay() {
+            const display = document.getElementById('scoreDisplay');
+            if (gameState.role === 'scorer') {
+                display.textContent = `Shots: ${gameState.totalShots} | Goals: ${gameState.goals} | Success: ${gameState.totalShots > 0 ? Math.round(gameState.goals/gameState.totalShots*100) : 0}%`;
+            } else {
+                display.textContent = `Shots: ${gameState.totalShots} | Saves: ${gameState.saves} | Save Rate: ${gameState.totalShots > 0 ? Math.round(gameState.saves/gameState.totalShots*100) : 0}%`;
+            }
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Subtle goalkeeper movement when waiting
+            if (gameState.phase === 'ready' || gameState.phase === 'running') {
+                goalkeeper.position.x += Math.sin(Date.now() * 0.001) * 0.005;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>
